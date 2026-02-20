@@ -224,6 +224,11 @@ def index():
     """Página principal"""
     return render_template('index.html')
 
+@app.route('/health')
+def health():
+    """Health check para o Render não reiniciar o serviço"""
+    return jsonify({'status': 'ok'}), 200
+
 @app.route('/calcular', methods=['POST'])
 def calcular():
     """Processa XMLs e calcula DAS"""
