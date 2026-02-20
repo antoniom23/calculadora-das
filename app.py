@@ -125,101 +125,57 @@ def verificar_nota_cancelada(root, ns: dict) -> bool:
     return False
 
 def processar_xml(caminho: str) -> Optional[Dict]:
-    """Processa um arquivo XML de NFe"""
     ns = {'nfe': 'http://www.portalfiscal.inf.br/nfe'}
     
     try:
         tree = ET.parse(caminho)
         root = tree.getroot()
         
+        print(f"[XML] Processando: {os.path.basename(caminho)}")
+        print(f"[XML] Root tag: {root.tag}")
+        
         if verificar_nota_cancelada(root, ns):
+            print(f"[XML] → CANCELADA")
             return None
         
         infNFe = root.find('.//nfe:infNFe', ns)
         if infNFe is None:
-            return None
-        
-        chave = infNFe.attrib.get('Id', '').replace('NFe', '')
-        if len(chave) != 44:
+            print(f"[XML] → infNFe não encontrado")
+            # Tenta sem namespace
+            infNFe = root.find('.//infNFe')
+            print(f"[XML] → Sem namespace: {infNFe}")
             return None
         
         ide = root.find('.//nfe:ide', ns)
         if ide is None:
+            print(f"[XML] → ide não encontrado")
             return None
-        
-        dhEmi = ide.find('nfe:dhEmi', ns) or ide.find('nfe:dEmi', ns)
-        if dhEmi is None:
-            return None
-        
-        data_texto = dhEmi.text
-        if 'T' in data_texto:
-            data = datetime.strptime(data_texto[:19], '%Y-%m-%dT%H:%M:%S')
-        else:
-            data = datetime.strptime(data_texto[:10], '%Y-%m-%d')
-        
-        nNF = ide.find('nfe:nNF', ns)
-        if nNF is None:
-            return None
-        
-        serie_elem = ide.find('nfe:serie', ns)
-        serie = serie_elem.text if serie_elem is not None else '0'
         
         itens_validos = []
+        todos_cfops = []
         for det in root.findall('.//nfe:det', ns):
             prod = det.find('nfe:prod', ns)
             if prod is None:
                 continue
-            
             cfop_elem = prod.find('nfe:CFOP', ns)
-            vProd_elem = prod.find('nfe:vProd', ns)
-            
-            if cfop_elem is None or vProd_elem is None:
-                continue
-            
-            cfop = cfop_elem.text.replace('.', '')
-            valor_item = Decimal(vProd_elem.text)
-            
-            vFrete_elem = prod.find('nfe:vFrete', ns)
-            if vFrete_elem is not None and vFrete_elem.text:
-                valor_item += Decimal(vFrete_elem.text)
-            
-            vOutro_elem = prod.find('nfe:vOutro', ns)
-            if vOutro_elem is not None and vOutro_elem.text:
-                valor_item += Decimal(vOutro_elem.text)
-            
-            tipo = None
-            if cfop in CFOPS_VENDAS:
-                tipo = 'V'
-            elif cfop in CFOPS_DEVOLUCOES:
-                tipo = 'D'
-            
-            if tipo:
-                itens_validos.append({
-                    'cfop': cfop,
-                    'valor': valor_item,
-                    'tipo': tipo
-                })
+            if cfop_elem is not None:
+                todos_cfops.append(cfop_elem.text)
         
-        if not itens_validos:
-            # Log para ver quais CFOPs estão no XML
-            todos_cfops = [
-                prod.find('nfe:CFOP', ns).text 
-                for det in root.findall('.//nfe:det', ns)
-                for prod in [det.find('nfe:prod', ns)]
-                if prod is not None and prod.find('nfe:CFOP', ns) is not None
-            ]
-            print(f"[SEM ITENS VÁLIDOS] CFOPs encontrados: {todos_cfops}")
-            return None 
+        print(f"[XML] → CFOPs encontrados: {todos_cfops}")
         
-        return {
-            'chave': chave,
-            'data': data,
-            'numero': nNF.text,
-            'serie': serie,
-            'itens': itens_validos
-        }
-    
+        for cfop in todos_cfops:
+            cfop_limpo = cfop.replace('.', '')
+            if cfop_limpo in CFOPS_VENDAS:
+                print(f"[XML] → CFOP {cfop_limpo} é VENDA ✓")
+            elif cfop_limpo in CFOPS_DEVOLUCOES:
+                print(f"[XML] → CFOP {cfop_limpo} é DEVOLUÇÃO ✓")
+            else:
+                print(f"[XML] → CFOP {cfop_limpo} NÃO RECONHECIDO ✗")
+        
     except Exception as e:
+        print(f"[XML] → EXCEÇÃO: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 # ============================================================================
