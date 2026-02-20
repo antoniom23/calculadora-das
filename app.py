@@ -257,10 +257,10 @@ def calcular():
                         zip_ref.extractall(temp_dir)
                     
                     # Lista XMLs extraídos
-                    for root, dirs, files in os.walk(temp_dir):
-                        for f in files:
+                    for dirpath, dirnames, filenames in os.walk(temp_dir):
+                        for f in filenames:
                             if f.lower().endswith('.xml'):
-                                xml_files.append(os.path.join(root, f))
+                                xml_files.append(os.path.join(dirpath, f))
                 else:
                     # XML individual
                     filepath = os.path.join(temp_dir, secure_filename(file.filename))
