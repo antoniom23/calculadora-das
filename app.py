@@ -201,7 +201,15 @@ def processar_xml(caminho: str) -> Optional[Dict]:
                 })
         
         if not itens_validos:
-            return None
+            # Log para ver quais CFOPs estão no XML
+            todos_cfops = [
+                prod.find('nfe:CFOP', ns).text 
+                for det in root.findall('.//nfe:det', ns)
+                for prod in [det.find('nfe:prod', ns)]
+                if prod is not None and prod.find('nfe:CFOP', ns) is not None
+            ]
+            print(f"[SEM ITENS VÁLIDOS] CFOPs encontrados: {todos_cfops}")
+            return None 
         
         return {
             'chave': chave,
