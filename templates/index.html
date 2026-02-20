@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora DAS - Simples Nacional | ECCONOMIZE</title>
+    <meta name="description" content="Calculadora profissional de DAS do Simples Nacional. Processa XMLs de NF-e automaticamente.">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                        <rect width="40" height="40" rx="12" fill="url(#gradient1)"/>
+                        <path d="M12 20L18 26L28 14" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                        <defs>
+                            <linearGradient id="gradient1" x1="0" y1="0" x2="40" y2="40">
+                                <stop offset="0%" stop-color="#667eea"/>
+                                <stop offset="100%" stop-color="#764ba2"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    <div>
+                        <h1>ECCONOMIZE</h1>
+                        <p>Calculadora DAS Profissional</p>
+                    </div>
+                </div>
+                <div class="header-badge">
+                    <span class="badge">✓ Conforme Receita Federal</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-text">
+                    <h2 class="hero-title">
+                        Calcule seu <span class="highlight">DAS</span> em segundos
+                    </h2>
+                    <p class="hero-subtitle">
+                        Processe seus XMLs de NF-e automaticamente e obtenha o cálculo preciso do seu DAS conforme a legislação vigente do Simples Nacional.
+                    </p>
+                    <div class="hero-features">
+                        <div class="feature-item">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 11l3 3L22 4"/>
+                                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                            </svg>
+                            <span>100% Automático</span>
+                        </div>
+                        <div class="feature-item">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M12 6v6l4 2"/>
+                            </svg>
+                            <span>Resultados Instantâneos</span>
+                        </div>
+                        <div class="feature-item">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                            </svg>
+                            <span>100% Seguro</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="hero-image">
+                    <div class="calculator-preview">
+                        <div class="preview-card">
+                            <div class="preview-header">
+                                <div class="preview-dots">
+                                    <span></span><span></span><span></span>
+                                </div>
+                            </div>
+                            <div class="preview-content">
+                                <div class="preview-line"></div>
+                                <div class="preview-line short"></div>
+                                <div class="preview-chart">
+                                    <div class="chart-bar" style="height: 60%"></div>
+                                    <div class="chart-bar" style="height: 85%"></div>
+                                    <div class="chart-bar" style="height: 45%"></div>
+                                    <div class="chart-bar" style="height: 70%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Calculator Section -->
+    <section class="calculator-section">
+        <div class="container">
+            <form id="calculatorForm" class="calculator-form">
+                <!-- Step 1: Upload -->
+                <div class="form-step active" data-step="1">
+                    <div class="step-header">
+                        <div class="step-number">1</div>
+                        <div>
+                            <h3>Enviar XMLs das Notas Fiscais</h3>
+                            <p>Arraste ou clique para selecionar arquivos XML ou ZIP</p>
+                        </div>
+                    </div>
+                    
+                    <div class="upload-area" id="uploadArea">
+                        <input type="file" id="xmlFiles" name="xmls" multiple accept=".xml,.zip" hidden>
+                        <div class="upload-content">
+                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                            <h4>Arraste os arquivos aqui</h4>
+                            <p>ou clique para selecionar</p>
+                            <span class="upload-hint">Aceita arquivos .XML e .ZIP (até 100MB)</span>
+                        </div>
+                        <div class="upload-files-list" id="filesList"></div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Dados -->
+                <div class="form-step" data-step="2">
+                    <div class="step-header">
+                        <div class="step-number">2</div>
+                        <div>
+                            <h3>Informações do Cálculo</h3>
+                            <p>Preencha os dados necessários para o cálculo</p>
+                        </div>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="rbt12">
+                                RBT12 (Receita últimos 12 meses)
+                                <span class="tooltip" data-tooltip="Receita Bruta Total acumulada nos últimos 12 meses">?</span>
+                            </label>
+                            <div class="input-with-prefix">
+                                <span class="prefix">R$</span>
+                                <input type="text" id="rbt12" name="rbt12" placeholder="0,00" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="anexo">
+                                Anexo do Simples Nacional
+                                <span class="tooltip" data-tooltip="Escolha o anexo conforme sua atividade">?</span>
+                            </label>
+                            <select id="anexo" name="anexo" required>
+                                <option value="ANEXO_I">Anexo I - Comércio</option>
+                                <option value="ANEXO_II">Anexo II - Indústria</option>
+                                <option value="ANEXO_III">Anexo III - Serviços (Locação)</option>
+                                <option value="ANEXO_IV">Anexo IV - Serviços (Construção)</option>
+                                <option value="ANEXO_V">Anexo V - Serviços (TI/Consultoria)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="mes">Mês de Referência</label>
+                            <select id="mes" name="mes" required>
+                                <option value="01">Janeiro</option>
+                                <option value="02">Fevereiro</option>
+                                <option value="03">Março</option>
+                                <option value="04">Abril</option>
+                                <option value="05">Maio</option>
+                                <option value="06">Junho</option>
+                                <option value="07">Julho</option>
+                                <option value="08">Agosto</option>
+                                <option value="09">Setembro</option>
+                                <option value="10">Outubro</option>
+                                <option value="11">Novembro</option>
+                                <option value="12">Dezembro</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="ano">Ano de Referência</label>
+                            <input type="number" id="ano" name="ano" min="2018" max="2030" value="2026" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Navigation Buttons -->
+                <div class="form-navigation">
+                    <button type="button" class="btn btn-secondary" id="prevBtn" style="display: none;">
+                        ← Anterior
+                    </button>
+                    <button type="button" class="btn btn-primary" id="nextBtn">
+                        Próximo →
+                    </button>
+                    <button type="submit" class="btn btn-success" id="calculateBtn" style="display: none;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="9 11 12 14 22 4"/>
+                            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                        </svg>
+                        Calcular DAS
+                    </button>
+                </div>
+            </form>
+
+            <!-- Loading State -->
+            <div class="loading-state" id="loadingState" style="display: none;">
+                <div class="loading-spinner"></div>
+                <h3>Processando XMLs...</h3>
+                <p>Aguarde enquanto calculamos seu DAS</p>
+            </div>
+
+            <!-- Results -->
+            <div class="results-section" id="resultsSection" style="display: none;">
+                <div class="results-header">
+                    <h2>Resultado do Cálculo</h2>
+                    <button class="btn btn-secondary" id="newCalculation">
+                        Nova Consulta
+                    </button>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="stats-grid" id="statsGrid"></div>
+
+                <!-- Main Result Card -->
+                <div class="result-card main-result">
+                    <div class="result-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="5" width="20" height="14" rx="2"/>
+                            <line x1="2" y1="10" x2="22" y2="10"/>
+                        </svg>
+                    </div>
+                    <div class="result-content">
+                        <h3>Valor do DAS a Recolher</h3>
+                        <div class="result-value" id="dasValue">R$ 0,00</div>
+                        <div class="result-details">
+                            <span>Alíquota Efetiva: <strong id="aliquotaValue">0%</strong></span>
+                            <span>Período: <strong id="periodoValue">-</strong></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Breakdown -->
+                <div class="breakdown-section">
+                    <h3>Detalhamento do Cálculo</h3>
+                    <div class="breakdown-cards">
+                        <div class="breakdown-card">
+                            <div class="breakdown-label">Faturamento Bruto</div>
+                            <div class="breakdown-value positive" id="faturamentoBruto">R$ 0,00</div>
+                        </div>
+                        <div class="breakdown-card">
+                            <div class="breakdown-label">Deduções</div>
+                            <div class="breakdown-value negative" id="deducoesValue">R$ 0,00</div>
+                        </div>
+                        <div class="breakdown-card">
+                            <div class="breakdown-label">Receita Bruta</div>
+                            <div class="breakdown-value primary" id="receitaBruta">R$ 0,00</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CFOPs Table -->
+                <div class="cfops-section">
+                    <h3>Resumo por CFOP</h3>
+                    <div class="table-responsive">
+                        <table class="cfops-table">
+                            <thead>
+                                <tr>
+                                    <th>CFOP</th>
+                                    <th>Tipo</th>
+                                    <th>Quantidade</th>
+                                    <th>Valor Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cfopsTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-info">
+                    <p><strong>Base Legal:</strong> Lei Complementar nº 123/2006 e Resolução CGSN nº 140/2018</p>
+                    <p class="footer-disclaimer">
+                        ⚠️ Este é um cálculo estimativo. Consulte seu contador para validação final.
+                    </p>
+                </div>
+                <div class="footer-links">
+                    <p>© 2026 ECCONOMIZE - Calculadora DAS</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
