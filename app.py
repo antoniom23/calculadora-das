@@ -90,14 +90,14 @@ CFOPS_DEVOLUCOES = {
 def calcular_aliquota_efetiva(rbt12: Decimal, anexo: str) -> Tuple[Decimal, Decimal]:
     """Calcula alíquota efetiva do Simples Nacional"""
     tabela = TABELAS_SIMPLES[anexo]
-    
+
     for faixa in tabela:
         if rbt12 <= faixa['limite']:
             aliquota = faixa['aliquota']
             deducao = faixa['deducao']
             aliquota_efetiva = ((rbt12 * aliquota) - deducao) / rbt12
             return max(aliquota_efetiva, Decimal('0')), deducao
-    
+
     return Decimal('0'), Decimal('0')
 
 def formatar_br(valor: Decimal) -> str:
@@ -113,7 +113,7 @@ def verificar_nota_cancelada(root, ns: dict) -> bool:
         cStat = infProt.find('nfe:cStat', ns)
         if cStat is not None and cStat.text == '101':
             return True
-    
+
     eventos = root.findall('.//nfe:procEventoNFe', ns)
     for evento in eventos:
         tpEvento = evento.find('.//nfe:tpEvento', ns)
@@ -121,87 +121,88 @@ def verificar_nota_cancelada(root, ns: dict) -> bool:
             cStat_evento = evento.find('.//nfe:cStat', ns)
             if cStat_evento is not None and cStat_evento.text in ['135', '155']:
                 return True
-    
+
     return False
 
 def processar_xml(caminho: str) -> Optional[Dict]:
+    """Processa um arquivo XML de NFe"""
     ns = {'nfe': 'http://www.portalfiscal.inf.br/nfe'}
-    
+
     try:
         tree = ET.parse(caminho)
         root = tree.getroot()
-        
+
         if verificar_nota_cancelada(root, ns):
             return None
-        
+
         infNFe = root.find('.//nfe:infNFe', ns)
         if infNFe is None:
             return None
-        
+
         chave = infNFe.attrib.get('Id', '').replace('NFe', '')
         if len(chave) != 44:
             return None
-        
+
         ide = root.find('.//nfe:ide', ns)
         if ide is None:
             return None
-        
+
         dhEmi = ide.find('nfe:dhEmi', ns) or ide.find('nfe:dEmi', ns)
         if dhEmi is None:
             return None
-        
+
         data_texto = dhEmi.text
         if 'T' in data_texto:
             data = datetime.strptime(data_texto[:19], '%Y-%m-%dT%H:%M:%S')
         else:
             data = datetime.strptime(data_texto[:10], '%Y-%m-%d')
-        
+
         nNF = ide.find('nfe:nNF', ns)
         if nNF is None:
             return None
-        
+
         serie_elem = ide.find('nfe:serie', ns)
         serie = serie_elem.text if serie_elem is not None else '0'
-        
+
         itens_validos = []
         for det in root.findall('.//nfe:det', ns):
             prod = det.find('nfe:prod', ns)
             if prod is None:
                 continue
-            
+
             cfop_elem = prod.find('nfe:CFOP', ns)
             vProd_elem = prod.find('nfe:vProd', ns)
-            
+
             if cfop_elem is None or vProd_elem is None:
                 continue
-            
+
             cfop = cfop_elem.text.replace('.', '')
             valor_item = Decimal(vProd_elem.text)
-            
+
             vFrete_elem = prod.find('nfe:vFrete', ns)
             if vFrete_elem is not None and vFrete_elem.text:
                 valor_item += Decimal(vFrete_elem.text)
-            
+
             vOutro_elem = prod.find('nfe:vOutro', ns)
             if vOutro_elem is not None and vOutro_elem.text:
                 valor_item += Decimal(vOutro_elem.text)
-            
+
             tipo = None
             if cfop in CFOPS_VENDAS:
                 tipo = 'V'
             elif cfop in CFOPS_DEVOLUCOES:
                 tipo = 'D'
-            
+
             if tipo:
                 itens_validos.append({
                     'cfop': cfop,
                     'valor': valor_item,
                     'tipo': tipo
                 })
-        
+
         if not itens_validos:
             return None
-        
+
         return {
             'chave': chave,
             'data': data,
@@ -209,7 +210,7 @@ def processar_xml(caminho: str) -> Optional[Dict]:
             'serie': serie,
             'itens': itens_validos
         }
-    
+
     except Exception as e:
         print(f"[ERRO] {caminho}: {e}")
         return None
@@ -227,59 +228,52 @@ def index():
 def calcular():
     """Processa XMLs e calcula DAS"""
     try:
-        # Valida entrada
         if 'xmls' not in request.files:
             return jsonify({'error': 'Nenhum arquivo enviado'}), 400
-        
+
         rbt12 = Decimal(request.form.get('rbt12', '0').replace('.', '').replace(',', '.'))
         anexo = request.form.get('anexo', 'ANEXO_I')
         mes_ref = request.form.get('mes', datetime.now().strftime('%m'))
         ano_ref = request.form.get('ano', datetime.now().strftime('%Y'))
-        
+
         if rbt12 <= 0:
             return jsonify({'error': 'RBT12 inválido'}), 400
-        
-        # Cria diretório temporário
+
         temp_dir = tempfile.mkdtemp()
-        
-        # Salva arquivos
         files = request.files.getlist('xmls')
         xml_files = []
-        
+
         for file in files:
             if file.filename:
                 if file.filename.endswith('.zip'):
-                    # Extrai ZIP
                     zip_path = os.path.join(temp_dir, secure_filename(file.filename))
                     file.save(zip_path)
-                    
+
                     with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                        zip_ref.extractall(temp_dir)
-                    
-                    # Lista XMLs extraídos
-                    for dirpath, dirnames, filenames in os.walk(temp_dir):
-                        for f in filenames:
-                            if f.lower().endswith('.xml'):
-                                xml_files.append(os.path.join(dirpath, f))
+                        for member in zip_ref.namelist():
+                            if member.lower().endswith('.xml'):
+                                zip_ref.extract(member, temp_dir)
+                                xml_files.append(os.path.join(temp_dir, member))
+
+                    os.remove(zip_path)
                 else:
-                    # XML individual
                     filepath = os.path.join(temp_dir, secure_filename(file.filename))
                     file.save(filepath)
                     xml_files.append(filepath)
-        
+
         if not xml_files:
             return jsonify({'error': 'Nenhum XML válido encontrado'}), 400
-        
+
         # Processa XMLs
         notas_validas = []
-        chaves_processadas = set()
+        chaves_processadas = set()   # apenas para deduplicar notas
         stats = {
             'total_arquivos': len(xml_files),
             'notas_validas': 0,
             'duplicadas': 0,
             'canceladas': 0
         }
-        
+
         for xml_path in xml_files:
             nota = processar_xml(xml_path)
             if nota:
@@ -290,38 +284,40 @@ def calcular():
                 else:
                     stats['duplicadas'] += 1
             else:
-                # Verifica se foi cancelada
                 try:
-                    tree = ET.parse(xml_path)
-                    root = tree.getroot()
-                    ns = {'nfe': 'http://www.portalfiscal.inf.br/nfe'}
-                    if verificar_nota_cancelada(root, ns):
+                    tree2 = ET.parse(xml_path)
+                    root2 = tree2.getroot()
+                    ns2 = {'nfe': 'http://www.portalfiscal.inf.br/nfe'}
+                    if verificar_nota_cancelada(root2, ns2):
                         stats['canceladas'] += 1
                 except:
                     pass
-        
+
+        shutil.rmtree(temp_dir, ignore_errors=True)
+
         if not notas_validas:
             return jsonify({'error': 'Nenhuma nota válida encontrada'}), 400
-        
+
         # Calcula totais
         faturamento_bruto = sum(
             Decimal(str(item['valor'])) for nota in notas_validas
             for item in nota['itens'] if item['tipo'] == 'V'
         )
-        
+
         deducoes = sum(
             Decimal(str(item['valor'])) for nota in notas_validas
             for item in nota['itens'] if item['tipo'] == 'D'
         )
-        
+
         receita_bruta = faturamento_bruto - deducoes
-        
-        # Calcula DAS
+
         aliquota_efetiva, deducao_parcela = calcular_aliquota_efetiva(rbt12, anexo)
         valor_das = (receita_bruta * aliquota_efetiva).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-        
-        # Agrupa por CFOP
+
+        # Agrupa por CFOP — set separado para não conflitar com chaves_processadas
         cfops_resumo = {}
+        chaves_unicas_cfop = set()
+
         for nota in notas_validas:
             for item in nota['itens']:
                 cfop = item['cfop']
@@ -331,18 +327,14 @@ def calcular():
                         'valor': Decimal('0'),
                         'tipo': 'VENDA' if cfop in CFOPS_VENDAS else 'DEVOLUÇÃO'
                     }
-                
-                # Conta nota única por CFOP
+
                 chave_unica = f"{nota['chave']}_{cfop}"
-                if chave_unica not in chaves_processadas:
+                if chave_unica not in chaves_unicas_cfop:
                     cfops_resumo[cfop]['quantidade'] += 1
-                
+                    chaves_unicas_cfop.add(chave_unica)
+
                 cfops_resumo[cfop]['valor'] += Decimal(str(item['valor']))
-        
-        # Limpa diretório temporário
-        shutil.rmtree(temp_dir, ignore_errors=True)
-        
-        # Retorna resultado
+
         return jsonify({
             'success': True,
             'stats': stats,
@@ -371,8 +363,10 @@ def calcular():
                 for cfop, dados in sorted(cfops_resumo.items())
             }
         })
-    
+
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
