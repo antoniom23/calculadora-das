@@ -94,8 +94,7 @@ def calcular_aliquota_efetiva(rbt12: Decimal, anexo: str) -> Tuple[Decimal, Deci
 
 def formatar_br(valor: Decimal) -> str:
     valor = valor.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-    texto = f"{valor:,.2f}"
-    return texto.replace(',', 'X').replace('.', ',').replace('X', '.')
+    return f"{valor:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
 
 def formatar_cnpj(cnpj: str) -> str:
     c = cnpj.replace('.','').replace('/','').replace('-','')
@@ -138,14 +137,14 @@ def processar_xml(caminho: str) -> Optional[Dict]:
         if dhEmi is None:
             return None
         data_texto = dhEmi.text
-        data = datetime.strptime(data_texto[:19], '%Y-%m-%dT%H:%M:%S') if 'T' in data_texto else datetime.strptime(data_texto[:10], '%Y-%m-%d')
+        data = (datetime.strptime(data_texto[:19], '%Y-%m-%dT%H:%M:%S')
+                if 'T' in data_texto else datetime.strptime(data_texto[:10], '%Y-%m-%d'))
         nNF = ide.find('nfe:nNF', ns)
         if nNF is None:
             return None
         serie_elem = ide.find('nfe:serie', ns)
         serie = serie_elem.text if serie_elem is not None else '0'
 
-        # Emitente
         emit = root.find('.//nfe:emit', ns)
         cnpj, razao_social = '', ''
         if emit is not None:
@@ -203,123 +202,177 @@ def agrupar_por_serie(notas_validas: list) -> dict:
         }
     return resultado
 
+def montar_detalhamento(notas_validas: list) -> dict:
+    """
+    Retorna dict: cfop -> { tipo, total, itens: [{data, numero, cfop, chave, valor}] }
+    Cada nota pode ter múltiplos itens com o mesmo CFOP — todos aparecem.
+    """
+    det = {}
+    for nota in notas_validas:
+        for item in nota['itens']:
+            cfop = item['cfop']
+            if cfop not in det:
+                det[cfop] = {
+                    'tipo': 'VENDA' if cfop in CFOPS_VENDAS else 'DEVOLUCAO',
+                    'total': Decimal('0'),
+                    'itens': []
+                }
+            det[cfop]['total'] += Decimal(str(item['valor']))
+            det[cfop]['itens'].append({
+                'data': nota['data'].strftime('%d/%m/%Y'),
+                'numero': str(nota['numero']).zfill(6),
+                'cfop': cfop,
+                'chave': nota['chave'],
+                'valor': float(item['valor']),
+                'valor_formatted': formatar_br(Decimal(str(item['valor'])))
+            })
+    # Ordena itens por data e número
+    for cfop in det:
+        det[cfop]['itens'].sort(key=lambda x: (x['data'][6:10]+x['data'][3:5]+x['data'][:2], x['numero']))
+        det[cfop]['total_formatted'] = formatar_br(det[cfop]['total'])
+        det[cfop]['quantidade'] = len(det[cfop]['itens'])
+        det[cfop]['total'] = float(det[cfop]['total'])
+    return dict(sorted(det.items()))
+
 # ============================================================================
-# GERACAO DO PDF - PLAIN TEXT ESTILO RELATORIO
+# GERACAO DO PDF - FONTE MONOESPAÇADA
 # ============================================================================
 
 def gerar_pdf(dados: dict) -> bytes:
-    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.pagesizes import A4, landscape
     from reportlab.pdfgen import canvas as rl_canvas
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
 
+    # Usa landscape A4 para caber chave de acesso (44 chars)
+    W, H = landscape(A4)
     buffer = io.BytesIO()
-    W, H = A4
-    c = rl_canvas.Canvas(buffer, pagesize=A4)
+    c = rl_canvas.Canvas(buffer, pagesize=landscape(A4))
 
-    margin_l = 40
-    margin_r = 40
-    y = [H - 45]  # lista para mutabilidade em closures
-    LH = 13       # line height normal
-    LH_S = 11     # line height pequeno
+    FONT = 'Courier'
+    FONT_B = 'Courier-Bold'
+    SZ = 8       # tamanho base
+    SZ_T = 9     # titulos
+    SZ_H = 10    # cabecalho principal
+    LH = 11      # line height
+    ML = 30      # margem esquerda
+    MR = 30      # margem direita
+    y = [H - 35]
+
+    # Largura util
+    UW = W - ML - MR
+    # Chars que cabem por linha com Courier 8pt (~6px por char)
+    CHARS = int(UW / (SZ * 0.601))
 
     def nova_pagina():
         c.showPage()
-        y[0] = H - 45
+        y[0] = H - 35
 
-    def check_y(needed=LH):
-        if y[0] < 55 + needed:
+    def check(needed=LH*2):
+        if y[0] < 40 + needed:
             nova_pagina()
 
-    def txt(texto, size=9, bold=False, indent=0):
-        check_y()
-        c.setFont('Helvetica-Bold' if bold else 'Helvetica', size)
-        c.drawString(margin_l + indent, y[0], texto)
+    def txt(texto, size=SZ, bold=False, x=None):
+        check()
+        c.setFont(FONT_B if bold else FONT, size)
+        c.drawString(x if x is not None else ML, y[0], texto)
         y[0] -= LH
 
-    def sep(char='=', size=9):
-        check_y()
-        largura = int((W - margin_l - margin_r) / (size * 0.6))
-        c.setFont('Helvetica', size)
-        c.drawString(margin_l, y[0], char * largura)
+    def sep(char='='):
+        check()
+        c.setFont(FONT, SZ)
+        c.drawString(ML, y[0], char * CHARS)
         y[0] -= LH
 
-    def espaco(n=1):
-        y[0] -= LH_S * n
+    def br(n=1):
+        y[0] -= (LH * 0.5) * n
 
-    # ---- CABECALHO ----
+    # =========================================================
+    # CABECALHO
+    # =========================================================
     sep('=')
-    txt('RELATORIO DE CALCULO DO DAS - SIMPLES NACIONAL', size=10, bold=True)
+    txt('RELATORIO DE CALCULO DO DAS - SIMPLES NACIONAL', size=SZ_H, bold=True)
     sep('=')
-    espaco()
+    br()
 
-    # Identificacao do contribuinte
     cnpj_raw = dados.get('cnpj', '')
-    razao = dados.get('razao_social', '')
+    razao    = dados.get('razao_social', '')
     if cnpj_raw or razao:
         txt('IDENTIFICACAO DO CONTRIBUINTE', bold=True)
         sep('-')
         if cnpj_raw:
-            txt(f"CNPJ          : {formatar_cnpj(cnpj_raw)}")
+            txt(f"CNPJ         : {formatar_cnpj(cnpj_raw)}")
         if razao:
-            txt(f"Razao Social  : {razao}")
+            txt(f"Razao Social : {razao}")
         sep('-')
-        espaco()
+        br()
 
     txt(f"Periodo de Apuracao : {dados.get('periodo', '-')}")
-    txt(f"Anexo Utilizado     : {dados.get('anexo', '-').replace('_', ' ')}")
+    txt(f"Anexo Utilizado     : {dados.get('anexo','').replace('_',' ')}")
     txt(f"Data de Geracao     : {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
     sep('=')
-    espaco()
+    br()
 
-    # ---- ESTATISTICAS ----
+    # =========================================================
+    # ESTATISTICAS
+    # =========================================================
     txt('ESTATISTICAS DE PROCESSAMENTO', bold=True)
     sep('-')
     stats = dados.get('stats', {})
-    txt(f"Total de XMLs encontrados  : {stats.get('total_arquivos', 0):>10}")
-    txt(f"Notas validas processadas  : {stats.get('notas_validas', 0):>10}")
-    txt(f"Notas canceladas (ignor.)  : {stats.get('canceladas', 0):>10}")
-    txt(f"Notas duplicadas (ignor.)  : {stats.get('duplicadas', 0):>10}")
+    txt(f"Total de XMLs encontrados  : {stats.get('total_arquivos',0):>8}")
+    txt(f"Notas validas processadas  : {stats.get('notas_validas',0):>8}")
+    txt(f"Notas canceladas (ignor.)  : {stats.get('canceladas',0):>8}")
+    txt(f"Notas duplicadas (ignor.)  : {stats.get('duplicadas',0):>8}")
     sep('-')
-    espaco()
+    br()
 
-    # ---- RESUMO POR CFOP ----
+    # =========================================================
+    # RESUMO POR CFOP
+    # =========================================================
     txt('RESUMO POR CFOP', bold=True)
     sep('-')
-    txt(f"{'CFOP':<8} | {'Qtd':>6} | {'Valor Total':>22} | Tipo")
+    txt(f"{'CFOP':<8} | {'Qtd Notas':<12} | {'Valor Total':>22}", bold=True)
     sep('-')
     for cfop, d in sorted(dados.get('cfops', {}).items()):
-        tipo_str = 'VENDA' if d.get('tipo','') in ['VENDA','V'] else 'DEVOLUCAO'
-        txt(f"{cfop:<8} | {d.get('quantidade',0):>6} | R$ {d.get('valor_formatted','0,00'):>18} | {tipo_str}")
+        tipo_label = '(VENDA)' if d.get('tipo','') in ['VENDA','V'] else '(DEVOLUCAO)'
+        txt(f"{cfop:<8} | {d.get('quantidade',0):<12} | R$ {d.get('valor_formatted','0,00'):>18}  {tipo_label}")
     sep('-')
-    espaco()
+    br()
 
-    # ---- APURACAO DO FATURAMENTO ----
+    # =========================================================
+    # APURACAO
+    # =========================================================
     txt('APURACAO DO FATURAMENTO', bold=True)
     sep('=')
-    txt(f"(+) Faturamento Bruto (Vendas) : R$ {dados.get('faturamento_bruto_formatted','0,00'):>18}")
-    txt(f"(-) Deducoes (Devolucoes)      : R$ {dados.get('deducoes_formatted','0,00'):>18}")
+    txt(f"(+) Faturamento Bruto (Vendas) : R$ {dados.get('faturamento_bruto_formatted','0,00'):>22}")
+    txt(f"(-) Deducoes (Devolucoes)      : R$ {dados.get('deducoes_formatted','0,00'):>22}")
     sep('-')
-    txt(f"(=) RECEITA BRUTA DO MES       : R$ {dados.get('receita_bruta_formatted','0,00'):>18}", bold=True)
+    txt(f"(=) RECEITA BRUTA DO MES       : R$ {dados.get('receita_bruta_formatted','0,00'):>22}", bold=True)
     sep('=')
-    espaco()
+    br()
 
-    # ---- CALCULO DO DAS ----
+    # =========================================================
+    # CALCULO DAS
+    # =========================================================
     txt('CALCULO DO DAS (SIMPLES NACIONAL)', bold=True)
     sep('=')
     txt(f"Anexo                    : {dados.get('anexo','').replace('_',' ')}")
-    txt(f"RBT12 (Receita 12 meses) : R$ {dados.get('rbt12_formatted','0,00'):>18}")
-    txt(f"Parcela a Deduzir        : R$ {dados.get('deducao_parcela_formatted','0,00'):>18}")
+    txt(f"RBT12 (Receita 12 meses) : R$ {dados.get('rbt12_formatted','0,00'):>22}")
+    txt(f"Parcela a Deduzir        : R$ {dados.get('deducao_parcela_formatted','0,00'):>22}")
     txt(f"Aliquota Efetiva         : {dados.get('aliquota_efetiva',0):.4f}%")
     sep('-')
-    txt(f"VALOR DO DAS A RECOLHER  : R$ {dados.get('valor_das_formatted','0,00'):>18}", bold=True, size=10)
+    txt(f"VALOR DO DAS A RECOLHER  : R$ {dados.get('valor_das_formatted','0,00'):>22}", size=SZ_T, bold=True)
     sep('=')
-    espaco()
+    br()
 
-    # ---- NOTAS POR SERIE ----
+    # =========================================================
+    # NOTAS POR SERIE
+    # =========================================================
     series = dados.get('series', {})
     if series:
         txt('NOTAS POR SERIE', bold=True)
         sep('-')
-        txt(f"{'Serie':<8} | {'Qtd':>6} | {'Primeira NF':>12} | {'Data':>12} | {'Ultima NF':>12} | {'Data':>12}")
+        txt(f"{'Serie':<8} | {'Qtd':>6} | {'Primeira NF':>12} | {'Data':>12} | {'Ultima NF':>12} | {'Data':>12}", bold=True)
         sep('-')
         for serie, info in sorted(series.items()):
             txt(
@@ -328,12 +381,59 @@ def gerar_pdf(dados: dict) -> bytes:
                 f"{str(info['ultima_numero']):>12} | {info['ultima_data']:>12}"
             )
         sep('-')
-        espaco()
+        br()
 
-    # ---- RODAPE ----
+    # =========================================================
+    # DETALHAMENTO POR CFOP
+    # =========================================================
+    detalhamento = dados.get('detalhamento', {})
+    if detalhamento:
+        sep('=')
+        txt('DETALHAMENTO POR CFOP', size=SZ_T, bold=True)
+        sep('=')
+
+        COL_DATA  = 12
+        COL_NUM   =  8
+        COL_CFOP  =  6
+        COL_CHAVE = 44
+        COL_VAL   = 14
+        # header fixo
+        HEADER = (
+            f"{'Data':<{COL_DATA}} | "
+            f"{'Numero':>{COL_NUM}} | "
+            f"{'CFOP':>{COL_CFOP}} | "
+            f"{'Chave de Acesso':<{COL_CHAVE}} | "
+            f"{'Valor':>{COL_VAL}}"
+        )
+
+        for cfop, d in sorted(detalhamento.items()):
+            br()
+            tipo_label = 'VENDAS' if d.get('tipo','') in ['VENDA','V'] else 'DEVOLUCOES'
+            check(LH * 5)
+            txt(f"CFOP {cfop} - {tipo_label}", bold=True, size=SZ_T)
+            txt(f"Total: R$ {d.get('total_formatted','0,00')} | Quantidade: {d.get('quantidade',0)} notas")
+            sep('-')
+            txt(HEADER, bold=True)
+            sep('-')
+            for item in d.get('itens', []):
+                check()
+                linha = (
+                    f"{item['data']:<{COL_DATA}} | "
+                    f"{item['numero']:>{COL_NUM}} | "
+                    f"{item['cfop']:>{COL_CFOP}} | "
+                    f"{item['chave']:<{COL_CHAVE}} | "
+                    f"R$ {item['valor_formatted']:>{COL_VAL-3}}"
+                )
+                txt(linha)
+            sep('-')
+
+    # =========================================================
+    # RODAPE
+    # =========================================================
+    br()
     sep('=')
-    txt('Base Legal: Lei Complementar n. 123/2006 e Resolucao CGSN n. 140/2018', size=8)
-    txt('Este e um calculo estimativo. Consulte seu contador para validacao final.', size=8)
+    txt('Base Legal: Lei Complementar n. 123/2006 e Resolucao CGSN n. 140/2018', size=7)
+    txt('Este e um calculo estimativo. Consulte seu contador para validacao final.', size=7)
     sep('=')
 
     c.save()
@@ -419,7 +519,6 @@ def calcular():
         for xml_path in xml_files:
             nota = processar_xml(xml_path)
             if nota:
-                # Captura CNPJ/Razão do primeiro XML válido
                 if not cnpj_emit and nota.get('cnpj'):
                     cnpj_emit = nota['cnpj']
                     razao_emit = nota['razao_social']
@@ -471,6 +570,7 @@ def calcular():
                 cfops_resumo[cfop]['valor'] += Decimal(str(item['valor']))
 
         series = agrupar_por_serie(notas_validas)
+        detalhamento = montar_detalhamento(notas_validas)
 
         return jsonify({
             'success': True,
@@ -502,7 +602,8 @@ def calcular():
                 }
                 for cfop, d in sorted(cfops_resumo.items())
             },
-            'series': series
+            'series': series,
+            'detalhamento': detalhamento
         })
 
     except Exception as e:
