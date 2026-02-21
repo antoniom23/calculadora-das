@@ -239,7 +239,7 @@ def montar_detalhamento(notas_validas: list) -> dict:
 # ============================================================================
 
 def gerar_pdf(dados: dict) -> bytes:
-    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.lib.pagesizes import A4, portrait
     from reportlab.pdfgen import canvas as rl_canvas
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
