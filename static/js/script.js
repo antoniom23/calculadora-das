@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // ========================================================================
     
     uploadArea.addEventListener('click', (e) => {
-        if (e.target !== uploadArea && e.target.closest('.file-item')) return;
+        if (e.target.closest('.file-item') || e.target.closest('.file-remove')) return;
         fileInput.click();
     });
     
@@ -31,8 +31,10 @@ document.addEventListener('DOMContentLoaded', function() {
         uploadArea.classList.add('dragover');
     });
     
-    uploadArea.addEventListener('dragleave', () => {
-        uploadArea.classList.remove('dragover');
+    uploadArea.addEventListener('dragleave', (e) => {
+        if (!uploadArea.contains(e.relatedTarget)) {
+            uploadArea.classList.remove('dragover');
+        }
     });
     
     uploadArea.addEventListener('drop', (e) => {
@@ -43,21 +45,20 @@ document.addEventListener('DOMContentLoaded', function() {
     
     fileInput.addEventListener('change', (e) => {
         handleFiles(e.target.files);
+        // Reset input so same file can be re-added after removal
+        e.target.value = '';
     });
     
     function handleFiles(files) {
         const newFiles = Array.from(files).filter(file => {
             const isValid = file.name.endsWith('.xml') || file.name.endsWith('.zip');
-            const notDuplicate = !uploadedFiles.some(f => f.name === file.name);
+            const notDuplicate = !uploadedFiles.some(f => f.name === file.name && f.size === file.size);
             return isValid && notDuplicate;
         });
         
         uploadedFiles = [...uploadedFiles, ...newFiles];
         renderFilesList();
-        
-        if (uploadedFiles.length > 0) {
-            nextBtn.disabled = false;
-        }
+        nextBtn.disabled = uploadedFiles.length === 0;
     }
     
     function renderFilesList() {
@@ -82,7 +83,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div style="font-size: 12px; color: var(--gray-500);">${formatFileSize(file.size)}</div>
                     </div>
                 </div>
-                <button type="button" class="file-remove" onclick="removeFile(${index})">
+                <button type="button" class="file-remove" data-index="${index}">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="6" x2="6" y2="18"/>
                         <line x1="6" y1="6" x2="18" y2="18"/>
@@ -90,15 +91,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 </button>
             </div>
         `).join('');
+
+        // Attach remove listeners
+        filesList.querySelectorAll('.file-remove').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const index = parseInt(btn.getAttribute('data-index'));
+                uploadedFiles.splice(index, 1);
+                renderFilesList();
+                nextBtn.disabled = uploadedFiles.length === 0;
+            });
+        });
     }
-    
-    window.removeFile = function(index) {
-        uploadedFiles.splice(index, 1);
-        renderFilesList();
-        if (uploadedFiles.length === 0) {
-            nextBtn.disabled = true;
-        }
-    };
     
     function formatFileSize(bytes) {
         if (bytes < 1024) return bytes + ' B';
@@ -110,9 +114,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // FORM NAVIGATION
     // ========================================================================
     
+    nextBtn.disabled = true;
+
     nextBtn.addEventListener('click', () => {
         if (currentStep === 1 && uploadedFiles.length === 0) {
-            alert('Por favor, selecione ao menos um arquivo XML');
+            alert('Por favor, selecione ao menos um arquivo XML ou ZIP');
             return;
         }
         if (currentStep < 2) {
@@ -138,33 +144,22 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // ========================================================================
-    // INPUT MASK RBT12 - CORRIGIDO
+    // INPUT MASK RBT12
     // ========================================================================
     
     const rbt12Input = document.getElementById('rbt12');
     
     rbt12Input.addEventListener('input', (e) => {
-    let digits = e.target.value.replace(/\D/g, '');
-    if (!digits) {
-        e.target.value = '';
-        return;
-    }
-    let cents = parseInt(digits);
-    let reais = Math.floor(cents / 100);
-        
+        let digits = e.target.value.replace(/\D/g, '');
         if (!digits) {
             e.target.value = '';
             return;
         }
-        
-        // Trata como centavos: últimos 2 dígitos são centavos
-        let cents = parseInt(digits);
-        let reais = Math.floor(cents / 100);
-        let centavos = cents % 100;
-        
-        // Formata os reais com separador de milhar
+        // Trata como centavos
+        let num = parseInt(digits, 10);
+        let reais = Math.floor(num / 100);
+        let centavos = num % 100;
         let reaisStr = reais.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-        
         e.target.value = reaisStr + ',' + String(centavos).padStart(2, '0');
     });
     
@@ -188,9 +183,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         const formData = new FormData();
-        uploadedFiles.forEach(file => {
-            formData.append('xmls', file);
-        });
+        uploadedFiles.forEach(file => formData.append('xmls', file));
         formData.append('rbt12', rbt12Raw);
         formData.append('anexo', document.getElementById('anexo').value);
         formData.append('mes', document.getElementById('mes').value);
@@ -228,8 +221,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // ========================================================================
     
     function displayResults(data) {
-        const statsGrid = document.getElementById('statsGrid');
-        statsGrid.innerHTML = `
+        document.getElementById('statsGrid').innerHTML = `
             <div class="stat-card">
                 <div class="stat-label">Total de XMLs</div>
                 <div class="stat-value">${data.stats.total_arquivos}</div>
@@ -255,14 +247,11 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('deducoesValue').textContent = `R$ ${data.deducoes_formatted}`;
         document.getElementById('receitaBruta').textContent = `R$ ${data.receita_bruta_formatted}`;
         
-        const cfopsTableBody = document.getElementById('cfopsTableBody');
-        cfopsTableBody.innerHTML = Object.entries(data.cfops)
+        document.getElementById('cfopsTableBody').innerHTML = Object.entries(data.cfops)
             .map(([cfop, dados]) => `
                 <tr>
                     <td><strong>${cfop}</strong></td>
-                    <td>
-                        <span class="type-badge ${dados.tipo.toLowerCase()}">${dados.tipo}</span>
-                    </td>
+                    <td><span class="type-badge ${dados.tipo.toLowerCase()}">${dados.tipo}</span></td>
                     <td>${dados.quantidade}</td>
                     <td><strong>R$ ${dados.valor_formatted}</strong></td>
                 </tr>
@@ -279,11 +268,12 @@ document.addEventListener('DOMContentLoaded', function() {
         form.reset();
         renderFilesList();
         updateStep();
+        nextBtn.disabled = true;
         resultsSection.style.display = 'none';
         form.style.display = 'block';
         window.scrollTo({ top: 0, behavior: 'smooth' });
-        const currentDate = new Date();
-        document.getElementById('mes').value = String(currentDate.getMonth() + 1).padStart(2, '0');
-        document.getElementById('ano').value = currentDate.getFullYear();
+        const d = new Date();
+        document.getElementById('mes').value = String(d.getMonth() + 1).padStart(2, '0');
+        document.getElementById('ano').value = d.getFullYear();
     });
 });
