@@ -170,6 +170,10 @@
                 <div class="results-header">
                     <h2>Resultado do Cálculo</h2>
                     <button class="btn btn-secondary" id="newCalculation">Nova Consulta</button>
+                    <button class="btn btn-primary" id="downloadPdf" style="display:inline-flex;align-items:center;gap:8px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        Baixar PDF
+                    </button>
                 </div>
                 <div class="stats-grid" id="statsGrid"></div>
                 <div class="result-card main-result">
@@ -376,6 +380,7 @@
                 const response = await fetch('/calcular', { method: 'POST', body: formData });
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.error || 'Erro ao processar');
+                ultimoResultado = result;
                 displayResults(result);
                 loadingState.style.display = 'none';
                 resultsSection.style.display = 'block';
@@ -411,6 +416,41 @@
             `).join('');
         }
 
+        // ---- DOWNLOAD PDF ----
+        let ultimoResultado = null;
+
+        document.getElementById('downloadPdf').addEventListener('click', async () => {
+            if (!ultimoResultado) return;
+            try {
+                const btn = document.getElementById('downloadPdf');
+                btn.textContent = 'Gerando...';
+                btn.disabled = true;
+
+                const response = await fetch('/gerar-pdf', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(ultimoResultado)
+                });
+
+                if (!response.ok) throw new Error('Erro ao gerar PDF');
+
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const periodo = ultimoResultado.periodo ? ultimoResultado.periodo.replace('/', '-') : 'resultado';
+                a.download = `DAS_${periodo}.pdf`;
+                a.click();
+                URL.revokeObjectURL(url);
+            } catch (err) {
+                alert('Erro ao gerar PDF: ' + err.message);
+            } finally {
+                const btn = document.getElementById('downloadPdf');
+                btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Baixar PDF';
+                btn.disabled = false;
+            }
+        });
+
         // ---- NOVA CONSULTA ----
         newCalculationBtn.addEventListener('click', () => {
             currentStep = 1;
@@ -419,6 +459,7 @@
             renderFilesList();
             updateStep();
             nextBtn.disabled = true;
+            ultimoResultado = null;
             resultsSection.style.display = 'none';
             form.style.display = 'block';
             window.scrollTo({ top: 0, behavior: 'smooth' });
