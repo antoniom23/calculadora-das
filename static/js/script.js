@@ -144,8 +144,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const rbt12Input = document.getElementById('rbt12');
     
     rbt12Input.addEventListener('input', (e) => {
-        // Remove tudo que não é dígito
-        let digits = e.target.value.replace(/\D/g, '');
+    let digits = e.target.value.replace(/\D/g, '');
+    if (!digits) {
+        e.target.value = '';
+        return;
+    }
+    let cents = parseInt(digits);
+    let reais = Math.floor(cents / 100);
         
         if (!digits) {
             e.target.value = '';
