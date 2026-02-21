@@ -7,7 +7,6 @@ from flask import Flask, render_template, request, jsonify, send_file, make_resp
 from werkzeug.utils import secure_filename
 import os
 import xml.etree.ElementTree as ET
-import re
 from datetime import datetime
 from typing import Dict, List, Tuple, Optional
 from decimal import Decimal, ROUND_HALF_UP
@@ -15,14 +14,6 @@ import zipfile
 import tempfile
 import shutil
 import io
-
-# ReportLab para geração de PDF
-from reportlab.lib.pagesizes import A4
-from reportlab.lib import colors
-from reportlab.lib.units import cm
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 200 * 1024 * 1024
@@ -179,227 +170,146 @@ def processar_xml(caminho: str) -> Optional[Dict]:
                 itens_validos.append({'cfop': cfop, 'valor': valor_item, 'tipo': tipo})
         if not itens_validos:
             return None
-        return {'chave': chave, 'data': data, 'numero': nNF.text, 'serie': serie, 'itens': itens_validos}
+        return {
+            'chave': chave,
+            'data': data,
+            'numero': int(nNF.text),
+            'serie': serie,
+            'itens': itens_validos
+        }
     except Exception as e:
         print(f"[ERRO] {caminho}: {e}")
         return None
 
+def agrupar_por_serie(notas_validas: list) -> dict:
+    """Agrupa notas por série, retornando primeira, última e quantidade"""
+    series = {}
+    for nota in notas_validas:
+        s = nota['serie']
+        if s not in series:
+            series[s] = []
+        series[s].append(nota)
+    
+    resultado = {}
+    for serie, notas in sorted(series.items()):
+        notas_ord = sorted(notas, key=lambda x: x['numero'])
+        primeira = notas_ord[0]
+        ultima = notas_ord[-1]
+        resultado[serie] = {
+            'quantidade': len(notas_ord),
+            'primeira_numero': primeira['numero'],
+            'primeira_data': primeira['data'].strftime('%d/%m/%Y'),
+            'ultima_numero': ultima['numero'],
+            'ultima_data': ultima['data'].strftime('%d/%m/%Y'),
+        }
+    return resultado
+
 # ============================================================================
-# GERAÇÃO DE PDF
+# GERAÇÃO DE PDF (PLAIN TEXT)
 # ============================================================================
 
 def gerar_pdf(dados: dict) -> bytes:
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas
+
     buffer = io.BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=A4,
-        rightMargin=2*cm, leftMargin=2*cm,
-        topMargin=2*cm, bottomMargin=2*cm
-    )
+    w, h = A4
+    c = canvas.Canvas(buffer, pagesize=A4)
+    
+    margin = 50
+    y = h - 50
+    line_h = 14
 
-    styles = getSampleStyleSheet()
-    COR_PRINCIPAL = colors.HexColor('#667eea')
-    COR_ESCURA = colors.HexColor('#1a1a2e')
-    COR_CINZA = colors.HexColor('#f8f9fa')
-    COR_VERDE = colors.HexColor('#10b981')
-    COR_VERMELHO = colors.HexColor('#ef4444')
+    def linha(texto, bold=False, size=10, indent=0):
+        nonlocal y
+        if y < 60:
+            c.showPage()
+            nonlocal_reset()
+        c.setFont('Helvetica-Bold' if bold else 'Helvetica', size)
+        c.drawString(margin + indent, y, texto)
+        y -= line_h
 
-    style_titulo = ParagraphStyle('Titulo', parent=styles['Normal'],
-        fontSize=22, fontName='Helvetica-Bold',
-        textColor=COR_PRINCIPAL, alignment=TA_LEFT, spaceAfter=4)
-    style_subtitulo = ParagraphStyle('SubTitulo', parent=styles['Normal'],
-        fontSize=10, fontName='Helvetica',
-        textColor=colors.HexColor('#666666'), alignment=TA_LEFT, spaceAfter=2)
-    style_secao = ParagraphStyle('Secao', parent=styles['Normal'],
-        fontSize=12, fontName='Helvetica-Bold',
-        textColor=COR_ESCURA, spaceBefore=16, spaceAfter=8)
-    style_label = ParagraphStyle('Label', parent=styles['Normal'],
-        fontSize=9, fontName='Helvetica',
-        textColor=colors.HexColor('#888888'))
-    style_valor = ParagraphStyle('Valor', parent=styles['Normal'],
-        fontSize=14, fontName='Helvetica-Bold',
-        textColor=COR_ESCURA)
-    style_das = ParagraphStyle('DAS', parent=styles['Normal'],
-        fontSize=28, fontName='Helvetica-Bold',
-        textColor=COR_PRINCIPAL, alignment=TA_CENTER)
-    style_rodape = ParagraphStyle('Rodape', parent=styles['Normal'],
-        fontSize=8, fontName='Helvetica',
-        textColor=colors.HexColor('#aaaaaa'), alignment=TA_CENTER)
+    def nonlocal_reset():
+        nonlocal y
+        y = h - 50
 
-    story = []
+    def separador():
+        nonlocal y
+        c.setFont('Helvetica', 9)
+        c.drawString(margin, y, '-' * 95)
+        y -= line_h
+
+    def espaco():
+        nonlocal y
+        y -= 6
 
     # Cabeçalho
-    story.append(Paragraph("ECCONOMIZE", style_titulo))
-    story.append(Paragraph("Calculadora DAS Profissional - Simples Nacional", style_subtitulo))
-    story.append(HRFlowable(width="100%", thickness=2, color=COR_PRINCIPAL, spaceAfter=12))
+    linha('ECCONOMIZE - Calculadora DAS Profissional', bold=True, size=13)
+    linha('Simples Nacional - Relatorio de Calculo', size=10)
+    separador()
 
-    # Info período
-    periodo_data = [
-        ['Período de Referência', 'Anexo', 'Gerado em'],
-        [
-            dados.get('periodo', '-'),
-            dados.get('anexo', '-').replace('_', ' '),
-            datetime.now().strftime('%d/%m/%Y %H:%M')
-        ]
-    ]
-    t_periodo = Table(periodo_data, colWidths=[5.5*cm, 5.5*cm, 5.5*cm])
-    t_periodo.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), COR_CINZA),
-        ('TEXTCOLOR', (0,0), (-1,0), colors.HexColor('#888888')),
-        ('FONTNAME', (0,0), (-1,0), 'Helvetica'),
-        ('FONTSIZE', (0,0), (-1,0), 8),
-        ('FONTNAME', (0,1), (-1,1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0,1), (-1,1), 11),
-        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('ROWBACKGROUNDS', (0,1), (-1,1), [colors.white]),
-        ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor('#dddddd')),
-        ('INNERGRID', (0,0), (-1,-1), 0.5, colors.HexColor('#dddddd')),
-        ('PADDING', (0,0), (-1,-1), 8),
-    ]))
-    story.append(t_periodo)
-    story.append(Spacer(1, 16))
+    # Período e geração
+    linha(f"Periodo de Referencia : {dados.get('periodo', '-')}", bold=True)
+    linha(f"Anexo                 : {dados.get('anexo', '-').replace('_', ' ')}")
+    linha(f"Gerado em             : {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+    separador()
 
-    # Stats notas
-    story.append(Paragraph("Resumo dos Arquivos", style_secao))
+    # Stats
+    espaco()
+    linha('RESUMO DOS ARQUIVOS', bold=True)
+    espaco()
     stats = dados.get('stats', {})
-    stats_data = [
-        ['Total de XMLs', 'Notas Válidas', 'Canceladas', 'Duplicadas'],
-        [
-            str(stats.get('total_arquivos', 0)),
-            str(stats.get('notas_validas', 0)),
-            str(stats.get('canceladas', 0)),
-            str(stats.get('duplicadas', 0)),
-        ]
-    ]
-    t_stats = Table(stats_data, colWidths=[4*cm, 4*cm, 4*cm, 4*cm])
-    t_stats.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), COR_CINZA),
-        ('TEXTCOLOR', (0,0), (-1,0), colors.HexColor('#888888')),
-        ('FONTNAME', (0,0), (-1,0), 'Helvetica'),
-        ('FONTSIZE', (0,0), (-1,0), 8),
-        ('FONTNAME', (0,1), (-1,1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0,1), (-1,1), 16),
-        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor('#dddddd')),
-        ('INNERGRID', (0,0), (-1,-1), 0.5, colors.HexColor('#dddddd')),
-        ('PADDING', (0,0), (-1,-1), 10),
-    ]))
-    story.append(t_stats)
-    story.append(Spacer(1, 16))
+    linha(f"  Total de XMLs  : {stats.get('total_arquivos', 0)}")
+    linha(f"  Notas Validas  : {stats.get('notas_validas', 0)}")
+    linha(f"  Canceladas     : {stats.get('canceladas', 0)}")
+    linha(f"  Duplicadas     : {stats.get('duplicadas', 0)}")
+    separador()
 
-    # Valor DAS em destaque
-    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#dddddd'), spaceAfter=12))
-    story.append(Paragraph("Valor do DAS a Recolher", style_secao))
+    # Resultado principal
+    espaco()
+    linha('RESULTADO DO CALCULO', bold=True)
+    espaco()
+    linha(f"  RBT12 (Receita 12 meses) : R$ {dados.get('rbt12_formatted', '0,00')}")
+    linha(f"  Faturamento Bruto        : R$ {dados.get('faturamento_bruto_formatted', '0,00')}")
+    linha(f"  Deducoes (Devolucoes)    : R$ {dados.get('deducoes_formatted', '0,00')}")
+    linha(f"  Receita Bruta            : R$ {dados.get('receita_bruta_formatted', '0,00')}")
+    linha(f"  Aliquota Efetiva         : {dados.get('aliquota_efetiva', 0):.4f}%")
+    espaco()
+    linha(f"  VALOR DO DAS A RECOLHER  : R$ {dados.get('valor_das_formatted', '0,00')}", bold=True, size=12)
+    separador()
 
-    das_table_data = [
-        [
-            Paragraph("VALOR DO DAS", ParagraphStyle('x', parent=styles['Normal'],
-                fontSize=9, fontName='Helvetica', textColor=colors.HexColor('#888888'), alignment=TA_CENTER)),
-            Paragraph("Alíquota Efetiva", ParagraphStyle('x', parent=styles['Normal'],
-                fontSize=9, fontName='Helvetica', textColor=colors.HexColor('#888888'), alignment=TA_CENTER)),
-            Paragraph("RBT12", ParagraphStyle('x', parent=styles['Normal'],
-                fontSize=9, fontName='Helvetica', textColor=colors.HexColor('#888888'), alignment=TA_CENTER)),
-        ],
-        [
-            Paragraph(f"R$ {dados.get('valor_das_formatted','0,00')}", ParagraphStyle('x', parent=styles['Normal'],
-                fontSize=22, fontName='Helvetica-Bold', textColor=COR_PRINCIPAL, alignment=TA_CENTER)),
-            Paragraph(f"{dados.get('aliquota_efetiva', 0):.4f}%", ParagraphStyle('x', parent=styles['Normal'],
-                fontSize=18, fontName='Helvetica-Bold', textColor=COR_ESCURA, alignment=TA_CENTER)),
-            Paragraph(f"R$ {dados.get('rbt12_formatted','0,00')}", ParagraphStyle('x', parent=styles['Normal'],
-                fontSize=14, fontName='Helvetica-Bold', textColor=COR_ESCURA, alignment=TA_CENTER)),
-        ]
-    ]
-    t_das = Table(das_table_data, colWidths=[6*cm, 5*cm, 5.5*cm])
-    t_das.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (0,-1), colors.HexColor('#eef2ff')),
-        ('BACKGROUND', (1,0), (-1,-1), COR_CINZA),
-        ('BOX', (0,0), (-1,-1), 1, COR_PRINCIPAL),
-        ('INNERGRID', (0,0), (-1,-1), 0.5, colors.HexColor('#dddddd')),
-        ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('PADDING', (0,0), (-1,-1), 12),
-    ]))
-    story.append(t_das)
-    story.append(Spacer(1, 16))
-
-    # Detalhamento
-    story.append(Paragraph("Detalhamento do Cálculo", style_secao))
-    detalhe_data = [
-        ['Descrição', 'Valor'],
-        ['Faturamento Bruto (Vendas)', f"R$ {dados.get('faturamento_bruto_formatted','0,00')}"],
-        ['Deduções (Devoluções)', f"- R$ {dados.get('deducoes_formatted','0,00')}"],
-        ['Receita Bruta', f"R$ {dados.get('receita_bruta_formatted','0,00')}"],
-    ]
-    t_detalhe = Table(detalhe_data, colWidths=[11*cm, 5.5*cm])
-    t_detalhe.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), COR_PRINCIPAL),
-        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
-        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0,0), (-1,0), 9),
-        ('FONTNAME', (0,1), (-1,-2), 'Helvetica'),
-        ('FONTNAME', (0,-1), (-1,-1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0,1), (-1,-1), 10),
-        ('BACKGROUND', (0,-1), (-1,-1), colors.HexColor('#eef2ff')),
-        ('ROWBACKGROUNDS', (0,1), (-1,-2), [colors.white, COR_CINZA]),
-        ('ALIGN', (1,0), (1,-1), 'RIGHT'),
-        ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor('#dddddd')),
-        ('INNERGRID', (0,0), (-1,-1), 0.5, colors.HexColor('#dddddd')),
-        ('PADDING', (0,0), (-1,-1), 8),
-    ]))
-    story.append(t_detalhe)
-    story.append(Spacer(1, 16))
-
-    # Tabela CFOPs
-    story.append(Paragraph("Resumo por CFOP", style_secao))
-    cfop_header = [['CFOP', 'Tipo', 'Quantidade', 'Valor Total']]
-    cfop_rows = []
+    # Resumo por CFOP
+    espaco()
+    linha('RESUMO POR CFOP', bold=True)
+    espaco()
+    linha(f"  {'CFOP':<8} {'TIPO':<12} {'QTD':>6}  {'VALOR TOTAL':>15}", bold=True)
+    linha(f"  {'-'*8} {'-'*12} {'-'*6}  {'-'*15}")
     for cfop, d in sorted(dados.get('cfops', {}).items()):
-        cfop_rows.append([
-            cfop,
-            d.get('tipo', ''),
-            str(d.get('quantidade', 0)),
-            f"R$ {d.get('valor_formatted', '0,00')}"
-        ])
-    cfop_data = cfop_header + cfop_rows
-    t_cfop = Table(cfop_data, colWidths=[3*cm, 5*cm, 4*cm, 4.5*cm])
-    row_styles = [
-        ('BACKGROUND', (0,0), (-1,0), COR_PRINCIPAL),
-        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
-        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0,0), (-1,0), 9),
-        ('FONTNAME', (0,1), (-1,-1), 'Helvetica'),
-        ('FONTSIZE', (0,1), (-1,-1), 10),
-        ('ALIGN', (2,0), (-1,-1), 'CENTER'),
-        ('ALIGN', (3,0), (3,-1), 'RIGHT'),
-        ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor('#dddddd')),
-        ('INNERGRID', (0,0), (-1,-1), 0.5, colors.HexColor('#dddddd')),
-        ('PADDING', (0,0), (-1,-1), 8),
-        ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, COR_CINZA]),
-    ]
-    # Colorir badge tipo
-    for i, row in enumerate(cfop_rows, start=1):
-        if row[1] == 'VENDA':
-            row_styles.append(('TEXTCOLOR', (1,i), (1,i), COR_VERDE))
-        else:
-            row_styles.append(('TEXTCOLOR', (1,i), (1,i), COR_VERMELHO))
-        row_styles.append(('FONTNAME', (1,i), (1,i), 'Helvetica-Bold'))
+        linha(f"  {cfop:<8} {d.get('tipo',''):<12} {d.get('quantidade',0):>6}  R$ {d.get('valor_formatted','0,00'):>13}")
+    separador()
 
-    t_cfop.setStyle(TableStyle(row_styles))
-    story.append(t_cfop)
-    story.append(Spacer(1, 24))
+    # Resumo por Série
+    series = dados.get('series', {})
+    if series:
+        espaco()
+        linha('NOTAS POR SERIE', bold=True)
+        espaco()
+        linha(f"  {'SERIE':<8} {'QTD':>5}  {'PRIMEIRA NF':>12}  {'DATA':>12}  {'ULTIMA NF':>12}  {'DATA':>12}", bold=True)
+        linha(f"  {'-'*8} {'-'*5}  {'-'*12}  {'-'*12}  {'-'*12}  {'-'*12}")
+        for serie, info in sorted(series.items()):
+            linha(
+                f"  {serie:<8} {info['quantidade']:>5}  "
+                f"{str(info['primeira_numero']):>12}  {info['primeira_data']:>12}  "
+                f"{str(info['ultima_numero']):>12}  {info['ultima_data']:>12}"
+            )
+        separador()
 
     # Rodapé
-    story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor('#dddddd'), spaceAfter=8))
-    story.append(Paragraph(
-        "Base Legal: Lei Complementar n. 123/2006 e Resolucao CGSN n. 140/2018",
-        style_rodape))
-    story.append(Paragraph(
-        "Este e um calculo estimativo. Consulte seu contador para validacao final.",
-        style_rodape))
+    espaco()
+    linha('Base Legal: Lei Complementar n. 123/2006 e Resolucao CGSN n. 140/2018', size=8)
+    linha('Este e um calculo estimativo. Consulte seu contador para validacao final.', size=8)
 
-    doc.build(story)
+    c.save()
     buffer.seek(0)
     return buffer.getvalue()
 
@@ -420,11 +330,10 @@ def health():
 
 @app.route('/gerar-pdf', methods=['POST'])
 def gerar_pdf_route():
-    """Recebe os dados do resultado e retorna um PDF"""
     try:
         dados = request.get_json()
         if not dados:
-            return jsonify({'error': 'Dados inválidos'}), 400
+            return jsonify({'error': 'Dados invalidos'}), 400
         pdf_bytes = gerar_pdf(dados)
         periodo = dados.get('periodo', 'resultado').replace('/', '-')
         filename = f"DAS_{periodo}.pdf"
@@ -452,7 +361,7 @@ def calcular():
         ano_ref = request.form.get('ano', datetime.now().strftime('%Y'))
 
         if rbt12 <= 0:
-            return jsonify({'error': 'RBT12 inválido'}), 400
+            return jsonify({'error': 'RBT12 invalido'}), 400
 
         temp_dir = tempfile.mkdtemp()
         files = request.files.getlist('xmls')
@@ -475,7 +384,7 @@ def calcular():
                     xml_files.append(filepath)
 
         if not xml_files:
-            return jsonify({'error': 'Nenhum XML válido encontrado'}), 400
+            return jsonify({'error': 'Nenhum XML valido encontrado'}), 400
 
         notas_validas = []
         chaves_processadas = set()
@@ -503,7 +412,7 @@ def calcular():
         shutil.rmtree(temp_dir, ignore_errors=True)
 
         if not notas_validas:
-            return jsonify({'error': 'Nenhuma nota válida encontrada'}), 400
+            return jsonify({'error': 'Nenhuma nota valida encontrada'}), 400
 
         faturamento_bruto = sum(
             (Decimal(str(item['valor'])) for nota in notas_validas
@@ -525,13 +434,16 @@ def calcular():
                 if cfop not in cfops_resumo:
                     cfops_resumo[cfop] = {
                         'quantidade': 0, 'valor': Decimal('0'),
-                        'tipo': 'VENDA' if cfop in CFOPS_VENDAS else 'DEVOLUÇÃO'
+                        'tipo': 'VENDA' if cfop in CFOPS_VENDAS else 'DEVOLUCAO'
                     }
                 chave_unica = f"{nota['chave']}_{cfop}"
                 if chave_unica not in chaves_unicas_cfop:
                     cfops_resumo[cfop]['quantidade'] += 1
                     chaves_unicas_cfop.add(chave_unica)
                 cfops_resumo[cfop]['valor'] += Decimal(str(item['valor']))
+
+        # Agrupa por série
+        series = agrupar_por_serie(notas_validas)
 
         return jsonify({
             'success': True,
@@ -553,13 +465,14 @@ def calcular():
             'valor_das_formatted': formatar_br(valor_das),
             'cfops': {
                 cfop: {
-                    'quantidade': dados['quantidade'],
-                    'valor': float(dados['valor']),
-                    'valor_formatted': formatar_br(dados['valor']),
-                    'tipo': dados['tipo']
+                    'quantidade': d['quantidade'],
+                    'valor': float(d['valor']),
+                    'valor_formatted': formatar_br(d['valor']),
+                    'tipo': d['tipo']
                 }
-                for cfop, dados in sorted(cfops_resumo.items())
-            }
+                for cfop, d in sorted(cfops_resumo.items())
+            },
+            'series': series
         })
 
     except Exception as e:
