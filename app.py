@@ -1,6 +1,6 @@
 """
 CALCULADORA DAS WEB - Backend Flask
-Versão 3.0 Web - OFICIAL
+Versao 3.0 Web - OFICIAL
 """
 
 from flask import Flask, render_template, request, jsonify, send_file, make_response
@@ -25,44 +25,44 @@ app.config['UPLOAD_FOLDER'] = tempfile.mkdtemp()
 
 TABELAS_SIMPLES = {
     'ANEXO_I': [
-        {'limite': Decimal('180000.00'), 'aliquota': Decimal('0.04'), 'deducao': Decimal('0.00')},
+        {'limite': Decimal('180000.00'), 'aliquota': Decimal('0.04'),  'deducao': Decimal('0.00')},
         {'limite': Decimal('360000.00'), 'aliquota': Decimal('0.073'), 'deducao': Decimal('5940.00')},
         {'limite': Decimal('720000.00'), 'aliquota': Decimal('0.095'), 'deducao': Decimal('13860.00')},
-        {'limite': Decimal('1800000.00'), 'aliquota': Decimal('0.107'), 'deducao': Decimal('22500.00')},
-        {'limite': Decimal('3600000.00'), 'aliquota': Decimal('0.143'), 'deducao': Decimal('87300.00')},
-        {'limite': Decimal('4800000.00'), 'aliquota': Decimal('0.19'), 'deducao': Decimal('378000.00')},
+        {'limite': Decimal('1800000.00'),'aliquota': Decimal('0.107'), 'deducao': Decimal('22500.00')},
+        {'limite': Decimal('3600000.00'),'aliquota': Decimal('0.143'), 'deducao': Decimal('87300.00')},
+        {'limite': Decimal('4800000.00'),'aliquota': Decimal('0.19'),  'deducao': Decimal('378000.00')},
     ],
     'ANEXO_II': [
         {'limite': Decimal('180000.00'), 'aliquota': Decimal('0.045'), 'deducao': Decimal('0.00')},
         {'limite': Decimal('360000.00'), 'aliquota': Decimal('0.078'), 'deducao': Decimal('5940.00')},
-        {'limite': Decimal('720000.00'), 'aliquota': Decimal('0.10'), 'deducao': Decimal('13860.00')},
-        {'limite': Decimal('1800000.00'), 'aliquota': Decimal('0.112'), 'deducao': Decimal('22500.00')},
-        {'limite': Decimal('3600000.00'), 'aliquota': Decimal('0.147'), 'deducao': Decimal('85500.00')},
-        {'limite': Decimal('4800000.00'), 'aliquota': Decimal('0.30'), 'deducao': Decimal('720000.00')},
+        {'limite': Decimal('720000.00'), 'aliquota': Decimal('0.10'),  'deducao': Decimal('13860.00')},
+        {'limite': Decimal('1800000.00'),'aliquota': Decimal('0.112'), 'deducao': Decimal('22500.00')},
+        {'limite': Decimal('3600000.00'),'aliquota': Decimal('0.147'), 'deducao': Decimal('85500.00')},
+        {'limite': Decimal('4800000.00'),'aliquota': Decimal('0.30'),  'deducao': Decimal('720000.00')},
     ],
     'ANEXO_III': [
-        {'limite': Decimal('180000.00'), 'aliquota': Decimal('0.06'), 'deducao': Decimal('0.00')},
+        {'limite': Decimal('180000.00'), 'aliquota': Decimal('0.06'),  'deducao': Decimal('0.00')},
         {'limite': Decimal('360000.00'), 'aliquota': Decimal('0.112'), 'deducao': Decimal('9360.00')},
         {'limite': Decimal('720000.00'), 'aliquota': Decimal('0.135'), 'deducao': Decimal('17640.00')},
-        {'limite': Decimal('1800000.00'), 'aliquota': Decimal('0.16'), 'deducao': Decimal('35640.00')},
-        {'limite': Decimal('3600000.00'), 'aliquota': Decimal('0.21'), 'deducao': Decimal('125640.00')},
-        {'limite': Decimal('4800000.00'), 'aliquota': Decimal('0.33'), 'deducao': Decimal('648000.00')},
+        {'limite': Decimal('1800000.00'),'aliquota': Decimal('0.16'),  'deducao': Decimal('35640.00')},
+        {'limite': Decimal('3600000.00'),'aliquota': Decimal('0.21'),  'deducao': Decimal('125640.00')},
+        {'limite': Decimal('4800000.00'),'aliquota': Decimal('0.33'),  'deducao': Decimal('648000.00')},
     ],
     'ANEXO_IV': [
         {'limite': Decimal('180000.00'), 'aliquota': Decimal('0.045'), 'deducao': Decimal('0.00')},
-        {'limite': Decimal('360000.00'), 'aliquota': Decimal('0.09'), 'deducao': Decimal('8100.00')},
+        {'limite': Decimal('360000.00'), 'aliquota': Decimal('0.09'),  'deducao': Decimal('8100.00')},
         {'limite': Decimal('720000.00'), 'aliquota': Decimal('0.102'), 'deducao': Decimal('12420.00')},
-        {'limite': Decimal('1800000.00'), 'aliquota': Decimal('0.14'), 'deducao': Decimal('39780.00')},
-        {'limite': Decimal('3600000.00'), 'aliquota': Decimal('0.22'), 'deducao': Decimal('183780.00')},
-        {'limite': Decimal('4800000.00'), 'aliquota': Decimal('0.33'), 'deducao': Decimal('828000.00')},
+        {'limite': Decimal('1800000.00'),'aliquota': Decimal('0.14'),  'deducao': Decimal('39780.00')},
+        {'limite': Decimal('3600000.00'),'aliquota': Decimal('0.22'),  'deducao': Decimal('183780.00')},
+        {'limite': Decimal('4800000.00'),'aliquota': Decimal('0.33'),  'deducao': Decimal('828000.00')},
     ],
     'ANEXO_V': [
         {'limite': Decimal('180000.00'), 'aliquota': Decimal('0.155'), 'deducao': Decimal('0.00')},
-        {'limite': Decimal('360000.00'), 'aliquota': Decimal('0.18'), 'deducao': Decimal('4500.00')},
+        {'limite': Decimal('360000.00'), 'aliquota': Decimal('0.18'),  'deducao': Decimal('4500.00')},
         {'limite': Decimal('720000.00'), 'aliquota': Decimal('0.195'), 'deducao': Decimal('9900.00')},
-        {'limite': Decimal('1800000.00'), 'aliquota': Decimal('0.205'), 'deducao': Decimal('17100.00')},
-        {'limite': Decimal('3600000.00'), 'aliquota': Decimal('0.23'), 'deducao': Decimal('62100.00')},
-        {'limite': Decimal('4800000.00'), 'aliquota': Decimal('0.305'), 'deducao': Decimal('540000.00')},
+        {'limite': Decimal('1800000.00'),'aliquota': Decimal('0.205'), 'deducao': Decimal('17100.00')},
+        {'limite': Decimal('3600000.00'),'aliquota': Decimal('0.23'),  'deducao': Decimal('62100.00')},
+        {'limite': Decimal('4800000.00'),'aliquota': Decimal('0.305'), 'deducao': Decimal('540000.00')},
     ],
 }
 
@@ -81,17 +81,15 @@ CFOPS_DEVOLUCOES = {
 }
 
 # ============================================================================
-# FUNÇÕES DE PROCESSAMENTO
+# FUNCOES DE PROCESSAMENTO
 # ============================================================================
 
 def calcular_aliquota_efetiva(rbt12: Decimal, anexo: str) -> Tuple[Decimal, Decimal]:
     tabela = TABELAS_SIMPLES[anexo]
     for faixa in tabela:
         if rbt12 <= faixa['limite']:
-            aliquota = faixa['aliquota']
-            deducao = faixa['deducao']
-            aliquota_efetiva = ((rbt12 * aliquota) - deducao) / rbt12
-            return max(aliquota_efetiva, Decimal('0')), deducao
+            aliquota_efetiva = ((rbt12 * faixa['aliquota']) - faixa['deducao']) / rbt12
+            return max(aliquota_efetiva, Decimal('0')), faixa['deducao']
     return Decimal('0'), Decimal('0')
 
 def formatar_br(valor: Decimal) -> str:
@@ -99,18 +97,23 @@ def formatar_br(valor: Decimal) -> str:
     texto = f"{valor:,.2f}"
     return texto.replace(',', 'X').replace('.', ',').replace('X', '.')
 
+def formatar_cnpj(cnpj: str) -> str:
+    c = cnpj.replace('.','').replace('/','').replace('-','')
+    if len(c) == 14:
+        return f"{c[:2]}.{c[2:5]}.{c[5:8]}/{c[8:12]}-{c[12:]}"
+    return cnpj
+
 def verificar_nota_cancelada(root, ns: dict) -> bool:
     infProt = root.find('.//nfe:infProt', ns)
     if infProt is not None:
         cStat = infProt.find('nfe:cStat', ns)
         if cStat is not None and cStat.text == '101':
             return True
-    eventos = root.findall('.//nfe:procEventoNFe', ns)
-    for evento in eventos:
+    for evento in root.findall('.//nfe:procEventoNFe', ns):
         tpEvento = evento.find('.//nfe:tpEvento', ns)
         if tpEvento is not None and tpEvento.text == '110111':
-            cStat_evento = evento.find('.//nfe:cStat', ns)
-            if cStat_evento is not None and cStat_evento.text in ['135', '155']:
+            cStat_ev = evento.find('.//nfe:cStat', ns)
+            if cStat_ev is not None and cStat_ev.text in ['135', '155']:
                 return True
     return False
 
@@ -135,46 +138,46 @@ def processar_xml(caminho: str) -> Optional[Dict]:
         if dhEmi is None:
             return None
         data_texto = dhEmi.text
-        if 'T' in data_texto:
-            data = datetime.strptime(data_texto[:19], '%Y-%m-%dT%H:%M:%S')
-        else:
-            data = datetime.strptime(data_texto[:10], '%Y-%m-%d')
+        data = datetime.strptime(data_texto[:19], '%Y-%m-%dT%H:%M:%S') if 'T' in data_texto else datetime.strptime(data_texto[:10], '%Y-%m-%d')
         nNF = ide.find('nfe:nNF', ns)
         if nNF is None:
             return None
         serie_elem = ide.find('nfe:serie', ns)
         serie = serie_elem.text if serie_elem is not None else '0'
+
+        # Emitente
+        emit = root.find('.//nfe:emit', ns)
+        cnpj, razao_social = '', ''
+        if emit is not None:
+            cnpj_el = emit.find('nfe:CNPJ', ns)
+            nome_el = emit.find('nfe:xNome', ns)
+            if cnpj_el is not None: cnpj = cnpj_el.text or ''
+            if nome_el is not None: razao_social = nome_el.text or ''
+
         itens_validos = []
         for det in root.findall('.//nfe:det', ns):
             prod = det.find('nfe:prod', ns)
-            if prod is None:
-                continue
-            cfop_elem = prod.find('nfe:CFOP', ns)
-            vProd_elem = prod.find('nfe:vProd', ns)
-            if cfop_elem is None or vProd_elem is None:
-                continue
-            cfop = cfop_elem.text.replace('.', '')
-            valor_item = Decimal(vProd_elem.text)
-            vFrete_elem = prod.find('nfe:vFrete', ns)
-            if vFrete_elem is not None and vFrete_elem.text:
-                valor_item += Decimal(vFrete_elem.text)
-            vOutro_elem = prod.find('nfe:vOutro', ns)
-            if vOutro_elem is not None and vOutro_elem.text:
-                valor_item += Decimal(vOutro_elem.text)
-            tipo = None
-            if cfop in CFOPS_VENDAS:
-                tipo = 'V'
-            elif cfop in CFOPS_DEVOLUCOES:
-                tipo = 'D'
+            if prod is None: continue
+            cfop_el = prod.find('nfe:CFOP', ns)
+            vprod_el = prod.find('nfe:vProd', ns)
+            if cfop_el is None or vprod_el is None: continue
+            cfop = cfop_el.text.replace('.', '')
+            valor_item = Decimal(vprod_el.text)
+            for tag in ['nfe:vFrete', 'nfe:vOutro']:
+                el = prod.find(tag, ns)
+                if el is not None and el.text:
+                    valor_item += Decimal(el.text)
+            tipo = 'V' if cfop in CFOPS_VENDAS else ('D' if cfop in CFOPS_DEVOLUCOES else None)
             if tipo:
                 itens_validos.append({'cfop': cfop, 'valor': valor_item, 'tipo': tipo})
+
         if not itens_validos:
             return None
+
         return {
-            'chave': chave,
-            'data': data,
-            'numero': int(nNF.text),
-            'serie': serie,
+            'chave': chave, 'data': data,
+            'numero': int(nNF.text), 'serie': serie,
+            'cnpj': cnpj, 'razao_social': razao_social,
             'itens': itens_validos
         }
     except Exception as e:
@@ -182,139 +185,163 @@ def processar_xml(caminho: str) -> Optional[Dict]:
         return None
 
 def agrupar_por_serie(notas_validas: list) -> dict:
-    """Agrupa notas por série, retornando primeira, última e quantidade"""
     series = {}
     for nota in notas_validas:
         s = nota['serie']
         if s not in series:
             series[s] = []
         series[s].append(nota)
-    
     resultado = {}
     for serie, notas in sorted(series.items()):
         notas_ord = sorted(notas, key=lambda x: x['numero'])
-        primeira = notas_ord[0]
-        ultima = notas_ord[-1]
         resultado[serie] = {
             'quantidade': len(notas_ord),
-            'primeira_numero': primeira['numero'],
-            'primeira_data': primeira['data'].strftime('%d/%m/%Y'),
-            'ultima_numero': ultima['numero'],
-            'ultima_data': ultima['data'].strftime('%d/%m/%Y'),
+            'primeira_numero': notas_ord[0]['numero'],
+            'primeira_data': notas_ord[0]['data'].strftime('%d/%m/%Y'),
+            'ultima_numero': notas_ord[-1]['numero'],
+            'ultima_data': notas_ord[-1]['data'].strftime('%d/%m/%Y'),
         }
     return resultado
 
 # ============================================================================
-# GERAÇÃO DE PDF (PLAIN TEXT)
+# GERACAO DO PDF - PLAIN TEXT ESTILO RELATORIO
 # ============================================================================
 
 def gerar_pdf(dados: dict) -> bytes:
     from reportlab.lib.pagesizes import A4
-    from reportlab.pdfgen import canvas
+    from reportlab.pdfgen import canvas as rl_canvas
 
     buffer = io.BytesIO()
-    w, h = A4
-    c = canvas.Canvas(buffer, pagesize=A4)
-    
-    margin = 50
-    y = h - 50
-    line_h = 14
+    W, H = A4
+    c = rl_canvas.Canvas(buffer, pagesize=A4)
 
-    def linha(texto, bold=False, size=10, indent=0):
-        nonlocal y
-        if y < 60:
-            c.showPage()
-            nonlocal_reset()
+    margin_l = 40
+    margin_r = 40
+    y = [H - 45]  # lista para mutabilidade em closures
+    LH = 13       # line height normal
+    LH_S = 11     # line height pequeno
+
+    def nova_pagina():
+        c.showPage()
+        y[0] = H - 45
+
+    def check_y(needed=LH):
+        if y[0] < 55 + needed:
+            nova_pagina()
+
+    def txt(texto, size=9, bold=False, indent=0):
+        check_y()
         c.setFont('Helvetica-Bold' if bold else 'Helvetica', size)
-        c.drawString(margin + indent, y, texto)
-        y -= line_h
+        c.drawString(margin_l + indent, y[0], texto)
+        y[0] -= LH
 
-    def nonlocal_reset():
-        nonlocal y
-        y = h - 50
+    def sep(char='=', size=9):
+        check_y()
+        largura = int((W - margin_l - margin_r) / (size * 0.6))
+        c.setFont('Helvetica', size)
+        c.drawString(margin_l, y[0], char * largura)
+        y[0] -= LH
 
-    def separador():
-        nonlocal y
-        c.setFont('Helvetica', 9)
-        c.drawString(margin, y, '-' * 95)
-        y -= line_h
+    def espaco(n=1):
+        y[0] -= LH_S * n
 
-    def espaco():
-        nonlocal y
-        y -= 6
-
-    # Cabeçalho
-    linha('ECCONOMIZE - Calculadora DAS Profissional', bold=True, size=13)
-    linha('Simples Nacional - Relatorio de Calculo', size=10)
-    separador()
-
-    # Período e geração
-    linha(f"Periodo de Referencia : {dados.get('periodo', '-')}", bold=True)
-    linha(f"Anexo                 : {dados.get('anexo', '-').replace('_', ' ')}")
-    linha(f"Gerado em             : {datetime.now().strftime('%d/%m/%Y %H:%M')}")
-    separador()
-
-    # Stats
+    # ---- CABECALHO ----
+    sep('=')
+    txt('RELATORIO DE CALCULO DO DAS - SIMPLES NACIONAL', size=10, bold=True)
+    sep('=')
     espaco()
-    linha('RESUMO DOS ARQUIVOS', bold=True)
+
+    # Identificacao do contribuinte
+    cnpj_raw = dados.get('cnpj', '')
+    razao = dados.get('razao_social', '')
+    if cnpj_raw or razao:
+        txt('IDENTIFICACAO DO CONTRIBUINTE', bold=True)
+        sep('-')
+        if cnpj_raw:
+            txt(f"CNPJ          : {formatar_cnpj(cnpj_raw)}")
+        if razao:
+            txt(f"Razao Social  : {razao}")
+        sep('-')
+        espaco()
+
+    txt(f"Periodo de Apuracao : {dados.get('periodo', '-')}")
+    txt(f"Anexo Utilizado     : {dados.get('anexo', '-').replace('_', ' ')}")
+    txt(f"Data de Geracao     : {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
+    sep('=')
     espaco()
+
+    # ---- ESTATISTICAS ----
+    txt('ESTATISTICAS DE PROCESSAMENTO', bold=True)
+    sep('-')
     stats = dados.get('stats', {})
-    linha(f"  Total de XMLs  : {stats.get('total_arquivos', 0)}")
-    linha(f"  Notas Validas  : {stats.get('notas_validas', 0)}")
-    linha(f"  Canceladas     : {stats.get('canceladas', 0)}")
-    linha(f"  Duplicadas     : {stats.get('duplicadas', 0)}")
-    separador()
+    txt(f"Total de XMLs encontrados  : {stats.get('total_arquivos', 0):>10}")
+    txt(f"Notas validas processadas  : {stats.get('notas_validas', 0):>10}")
+    txt(f"Notas canceladas (ignor.)  : {stats.get('canceladas', 0):>10}")
+    txt(f"Notas duplicadas (ignor.)  : {stats.get('duplicadas', 0):>10}")
+    sep('-')
+    espaco()
 
-    # Resultado principal
-    espaco()
-    linha('RESULTADO DO CALCULO', bold=True)
-    espaco()
-    linha(f"  RBT12 (Receita 12 meses) : R$ {dados.get('rbt12_formatted', '0,00')}")
-    linha(f"  Faturamento Bruto        : R$ {dados.get('faturamento_bruto_formatted', '0,00')}")
-    linha(f"  Deducoes (Devolucoes)    : R$ {dados.get('deducoes_formatted', '0,00')}")
-    linha(f"  Receita Bruta            : R$ {dados.get('receita_bruta_formatted', '0,00')}")
-    linha(f"  Aliquota Efetiva         : {dados.get('aliquota_efetiva', 0):.4f}%")
-    espaco()
-    linha(f"  VALOR DO DAS A RECOLHER  : R$ {dados.get('valor_das_formatted', '0,00')}", bold=True, size=12)
-    separador()
-
-    # Resumo por CFOP
-    espaco()
-    linha('RESUMO POR CFOP', bold=True)
-    espaco()
-    linha(f"  {'CFOP':<8} {'TIPO':<12} {'QTD':>6}  {'VALOR TOTAL':>15}", bold=True)
-    linha(f"  {'-'*8} {'-'*12} {'-'*6}  {'-'*15}")
+    # ---- RESUMO POR CFOP ----
+    txt('RESUMO POR CFOP', bold=True)
+    sep('-')
+    txt(f"{'CFOP':<8} | {'Qtd':>6} | {'Valor Total':>22} | Tipo")
+    sep('-')
     for cfop, d in sorted(dados.get('cfops', {}).items()):
-        linha(f"  {cfop:<8} {d.get('tipo',''):<12} {d.get('quantidade',0):>6}  R$ {d.get('valor_formatted','0,00'):>13}")
-    separador()
+        tipo_str = 'VENDA' if d.get('tipo','') in ['VENDA','V'] else 'DEVOLUCAO'
+        txt(f"{cfop:<8} | {d.get('quantidade',0):>6} | R$ {d.get('valor_formatted','0,00'):>18} | {tipo_str}")
+    sep('-')
+    espaco()
 
-    # Resumo por Série
+    # ---- APURACAO DO FATURAMENTO ----
+    txt('APURACAO DO FATURAMENTO', bold=True)
+    sep('=')
+    txt(f"(+) Faturamento Bruto (Vendas) : R$ {dados.get('faturamento_bruto_formatted','0,00'):>18}")
+    txt(f"(-) Deducoes (Devolucoes)      : R$ {dados.get('deducoes_formatted','0,00'):>18}")
+    sep('-')
+    txt(f"(=) RECEITA BRUTA DO MES       : R$ {dados.get('receita_bruta_formatted','0,00'):>18}", bold=True)
+    sep('=')
+    espaco()
+
+    # ---- CALCULO DO DAS ----
+    txt('CALCULO DO DAS (SIMPLES NACIONAL)', bold=True)
+    sep('=')
+    txt(f"Anexo                    : {dados.get('anexo','').replace('_',' ')}")
+    txt(f"RBT12 (Receita 12 meses) : R$ {dados.get('rbt12_formatted','0,00'):>18}")
+    txt(f"Parcela a Deduzir        : R$ {dados.get('deducao_parcela_formatted','0,00'):>18}")
+    txt(f"Aliquota Efetiva         : {dados.get('aliquota_efetiva',0):.4f}%")
+    sep('-')
+    txt(f"VALOR DO DAS A RECOLHER  : R$ {dados.get('valor_das_formatted','0,00'):>18}", bold=True, size=10)
+    sep('=')
+    espaco()
+
+    # ---- NOTAS POR SERIE ----
     series = dados.get('series', {})
     if series:
-        espaco()
-        linha('NOTAS POR SERIE', bold=True)
-        espaco()
-        linha(f"  {'SERIE':<8} {'QTD':>5}  {'PRIMEIRA NF':>12}  {'DATA':>12}  {'ULTIMA NF':>12}  {'DATA':>12}", bold=True)
-        linha(f"  {'-'*8} {'-'*5}  {'-'*12}  {'-'*12}  {'-'*12}  {'-'*12}")
+        txt('NOTAS POR SERIE', bold=True)
+        sep('-')
+        txt(f"{'Serie':<8} | {'Qtd':>6} | {'Primeira NF':>12} | {'Data':>12} | {'Ultima NF':>12} | {'Data':>12}")
+        sep('-')
         for serie, info in sorted(series.items()):
-            linha(
-                f"  {serie:<8} {info['quantidade']:>5}  "
-                f"{str(info['primeira_numero']):>12}  {info['primeira_data']:>12}  "
-                f"{str(info['ultima_numero']):>12}  {info['ultima_data']:>12}"
+            txt(
+                f"{serie:<8} | {info['quantidade']:>6} | "
+                f"{str(info['primeira_numero']):>12} | {info['primeira_data']:>12} | "
+                f"{str(info['ultima_numero']):>12} | {info['ultima_data']:>12}"
             )
-        separador()
+        sep('-')
+        espaco()
 
-    # Rodapé
-    espaco()
-    linha('Base Legal: Lei Complementar n. 123/2006 e Resolucao CGSN n. 140/2018', size=8)
-    linha('Este e um calculo estimativo. Consulte seu contador para validacao final.', size=8)
+    # ---- RODAPE ----
+    sep('=')
+    txt('Base Legal: Lei Complementar n. 123/2006 e Resolucao CGSN n. 140/2018', size=8)
+    txt('Este e um calculo estimativo. Consulte seu contador para validacao final.', size=8)
+    sep('=')
 
     c.save()
     buffer.seek(0)
     return buffer.getvalue()
 
 # ============================================================================
-# ROTAS DA APLICAÇÃO
+# ROTAS
 # ============================================================================
 
 @app.route('/')
@@ -336,16 +363,14 @@ def gerar_pdf_route():
             return jsonify({'error': 'Dados invalidos'}), 400
         pdf_bytes = gerar_pdf(dados)
         periodo = dados.get('periodo', 'resultado').replace('/', '-')
-        filename = f"DAS_{periodo}.pdf"
         return send_file(
             io.BytesIO(pdf_bytes),
             mimetype='application/pdf',
             as_attachment=True,
-            download_name=filename
+            download_name=f"DAS_{periodo}.pdf"
         )
     except Exception as e:
-        import traceback
-        traceback.print_exc()
+        import traceback; traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/calcular', methods=['POST'])
@@ -368,20 +393,20 @@ def calcular():
         xml_files = []
 
         for file in files:
-            if file.filename:
-                if file.filename.endswith('.zip'):
-                    zip_path = os.path.join(temp_dir, secure_filename(file.filename))
-                    file.save(zip_path)
-                    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                        for member in zip_ref.namelist():
-                            if member.lower().endswith('.xml'):
-                                zip_ref.extract(member, temp_dir)
-                                xml_files.append(os.path.join(temp_dir, member))
-                    os.remove(zip_path)
-                else:
-                    filepath = os.path.join(temp_dir, secure_filename(file.filename))
-                    file.save(filepath)
-                    xml_files.append(filepath)
+            if not file.filename: continue
+            if file.filename.endswith('.zip'):
+                zip_path = os.path.join(temp_dir, secure_filename(file.filename))
+                file.save(zip_path)
+                with zipfile.ZipFile(zip_path, 'r') as zr:
+                    for member in zr.namelist():
+                        if member.lower().endswith('.xml'):
+                            zr.extract(member, temp_dir)
+                            xml_files.append(os.path.join(temp_dir, member))
+                os.remove(zip_path)
+            else:
+                fp = os.path.join(temp_dir, secure_filename(file.filename))
+                file.save(fp)
+                xml_files.append(fp)
 
         if not xml_files:
             return jsonify({'error': 'Nenhum XML valido encontrado'}), 400
@@ -389,10 +414,15 @@ def calcular():
         notas_validas = []
         chaves_processadas = set()
         stats = {'total_arquivos': len(xml_files), 'notas_validas': 0, 'duplicadas': 0, 'canceladas': 0}
+        cnpj_emit, razao_emit = '', ''
 
         for xml_path in xml_files:
             nota = processar_xml(xml_path)
             if nota:
+                # Captura CNPJ/Razão do primeiro XML válido
+                if not cnpj_emit and nota.get('cnpj'):
+                    cnpj_emit = nota['cnpj']
+                    razao_emit = nota['razao_social']
                 if nota['chave'] not in chaves_processadas:
                     notas_validas.append(nota)
                     chaves_processadas.add(nota['chave'])
@@ -417,11 +447,9 @@ def calcular():
         faturamento_bruto = sum(
             (Decimal(str(item['valor'])) for nota in notas_validas
              for item in nota['itens'] if item['tipo'] == 'V'), Decimal('0'))
-
         deducoes = sum(
             (Decimal(str(item['valor'])) for nota in notas_validas
              for item in nota['itens'] if item['tipo'] == 'D'), Decimal('0'))
-
         receita_bruta = faturamento_bruto - deducoes
         aliquota_efetiva, deducao_parcela = calcular_aliquota_efetiva(rbt12, anexo)
         valor_das = (receita_bruta * aliquota_efetiva).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
@@ -442,11 +470,13 @@ def calcular():
                     chaves_unicas_cfop.add(chave_unica)
                 cfops_resumo[cfop]['valor'] += Decimal(str(item['valor']))
 
-        # Agrupa por série
         series = agrupar_por_serie(notas_validas)
 
         return jsonify({
             'success': True,
+            'cnpj': cnpj_emit,
+            'cnpj_formatted': formatar_cnpj(cnpj_emit),
+            'razao_social': razao_emit,
             'stats': stats,
             'periodo': f"{mes_ref}/{ano_ref}",
             'anexo': anexo,
@@ -476,8 +506,7 @@ def calcular():
         })
 
     except Exception as e:
-        import traceback
-        traceback.print_exc()
+        import traceback; traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
