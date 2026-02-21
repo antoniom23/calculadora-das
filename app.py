@@ -147,7 +147,8 @@ def processar_xml(caminho: str) -> Optional[Dict]:
         if ide is None:
             return None
 
-        dhEmi = ide.find('nfe:dhEmi', ns) or ide.find('nfe:dEmi', ns)
+        _dhEmi = ide.find('nfe:dhEmi', ns)
+        dhEmi = _dhEmi if _dhEmi is not None else ide.find('nfe:dEmi', ns)
         if dhEmi is None:
             return None
 
