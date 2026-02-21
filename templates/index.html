@@ -74,15 +74,6 @@
                             </div>
                         </div>
                     </div>
-                
-                <div class="cfops-section" id="seriesSection" style="margin-top:24px;">
-                    <h3>Notas por Serie</h3>
-                    <div class="table-responsive">
-                        <table class="cfops-table">
-                            <thead><tr><th>Serie</th><th>Quantidade</th><th>Primeira NF</th><th>Data</th><th>Ultima NF</th><th>Data</th></tr></thead>
-                            <tbody id="seriesTableBody"></tbody>
-                        </table>
-                    </div>
                 </div>
             </div>
         </div>
@@ -160,31 +151,47 @@
                 </div>
 
                 <div class="form-navigation">
-                    <button type="button" class="btn btn-secondary" id="prevBtn" style="display: none;">← Anterior</button>
+                    <button type="button" class="btn btn-secondary" id="prevBtn" style="display:none;">← Anterior</button>
                     <button type="button" class="btn btn-primary" id="nextBtn">Próximo →</button>
-                    <button type="submit" class="btn btn-success" id="calculateBtn" style="display: none;">
+                    <button type="submit" class="btn btn-success" id="calculateBtn" style="display:none;">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
                         Calcular DAS
                     </button>
                 </div>
             </form>
 
-            <div class="loading-state" id="loadingState" style="display: none;">
+            <div class="loading-state" id="loadingState" style="display:none;">
                 <div class="loading-spinner"></div>
                 <h3>Processando XMLs...</h3>
                 <p>Aguarde enquanto calculamos seu DAS</p>
             </div>
 
-            <div class="results-section" id="resultsSection" style="display: none;">
+            <!-- RESULTADOS -->
+            <div class="results-section" id="resultsSection" style="display:none;">
+
+                <!-- Cabeçalho de resultados -->
                 <div class="results-header">
                     <h2>Resultado do Cálculo</h2>
-                    <button class="btn btn-secondary" id="newCalculation">Nova Consulta</button>
-                    <button class="btn btn-primary" id="downloadPdf" style="display:inline-flex;align-items:center;gap:8px;">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                        Baixar PDF
-                    </button>
+                    <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                        <button class="btn btn-secondary" id="newCalculation">Nova Consulta</button>
+                        <button class="btn btn-primary" id="downloadPdf" style="display:inline-flex;align-items:center;gap:8px;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                            Baixar PDF
+                        </button>
+                    </div>
                 </div>
+
+                <!-- Identificação do Contribuinte -->
+                <div id="contribuinteCard" style="display:none;background:var(--gray-50,#f9fafb);border:1px solid #e5e7eb;border-radius:12px;padding:16px 20px;margin-bottom:20px;">
+                    <div style="font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Identificação do Contribuinte</div>
+                    <div style="font-size:15px;font-weight:700;color:#1a1a2e;" id="razaoSocialDisplay"></div>
+                    <div style="font-size:13px;color:#555;margin-top:2px;">CNPJ: <span id="cnpjDisplay"></span></div>
+                </div>
+
+                <!-- Stats -->
                 <div class="stats-grid" id="statsGrid"></div>
+
+                <!-- DAS principal -->
                 <div class="result-card main-result">
                     <div class="result-icon">
                         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
@@ -198,14 +205,47 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Detalhamento -->
                 <div class="breakdown-section">
                     <h3>Detalhamento do Cálculo</h3>
                     <div class="breakdown-cards">
-                        <div class="breakdown-card"><div class="breakdown-label">Faturamento Bruto</div><div class="breakdown-value positive" id="faturamentoBruto">R$ 0,00</div></div>
-                        <div class="breakdown-card"><div class="breakdown-label">Deduções</div><div class="breakdown-value negative" id="deducoesValue">R$ 0,00</div></div>
-                        <div class="breakdown-card"><div class="breakdown-label">Receita Bruta</div><div class="breakdown-value primary" id="receitaBruta">R$ 0,00</div></div>
+                        <div class="breakdown-card">
+                            <div class="breakdown-label">Faturamento Bruto</div>
+                            <div class="breakdown-value positive" id="faturamentoBruto">R$ 0,00</div>
+                        </div>
+                        <div class="breakdown-card">
+                            <div class="breakdown-label">Deduções</div>
+                            <div class="breakdown-value negative" id="deducoesValue">R$ 0,00</div>
+                        </div>
+                        <div class="breakdown-card">
+                            <div class="breakdown-label">Receita Bruta</div>
+                            <div class="breakdown-value primary" id="receitaBruta">R$ 0,00</div>
+                        </div>
                     </div>
                 </div>
+
+                <!-- Notas por Série — logo abaixo do detalhamento -->
+                <div class="cfops-section" id="seriesSection" style="display:none;">
+                    <h3>Notas por Série</h3>
+                    <div class="table-responsive">
+                        <table class="cfops-table">
+                            <thead>
+                                <tr>
+                                    <th>Série</th>
+                                    <th>Quantidade</th>
+                                    <th>Primeira NF</th>
+                                    <th>Data</th>
+                                    <th>Última NF</th>
+                                    <th>Data</th>
+                                </tr>
+                            </thead>
+                            <tbody id="seriesTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- CFOPs -->
                 <div class="cfops-section">
                     <h3>Resumo por CFOP</h3>
                     <div class="table-responsive">
@@ -215,7 +255,8 @@
                         </table>
                     </div>
                 </div>
-            </div>
+
+            </div><!-- /results-section -->
         </div>
     </section>
 
@@ -232,7 +273,6 @@
     </footer>
 
     <script>
-    // CALCULADORA DAS - JavaScript v5 (inline - sem cache)
     document.addEventListener('DOMContentLoaded', function() {
         const form = document.getElementById('calculatorForm');
         const uploadArea = document.getElementById('uploadArea');
@@ -247,32 +287,17 @@
 
         let currentStep = 1;
         let uploadedFiles = [];
+        let ultimoResultado = null;
 
         // ---- UPLOAD ----
         uploadArea.addEventListener('click', (e) => {
             if (e.target.closest('.file-remove')) return;
             fileInput.click();
         });
-
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('dragover');
-        });
-
-        uploadArea.addEventListener('dragleave', (e) => {
-            if (!uploadArea.contains(e.relatedTarget)) uploadArea.classList.remove('dragover');
-        });
-
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-            handleFiles(e.dataTransfer.files);
-        });
-
-        fileInput.addEventListener('change', (e) => {
-            handleFiles(e.target.files);
-            e.target.value = '';
-        });
+        uploadArea.addEventListener('dragover', (e) => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+        uploadArea.addEventListener('dragleave', (e) => { if (!uploadArea.contains(e.relatedTarget)) uploadArea.classList.remove('dragover'); });
+        uploadArea.addEventListener('drop', (e) => { e.preventDefault(); uploadArea.classList.remove('dragover'); handleFiles(e.dataTransfer.files); });
+        fileInput.addEventListener('change', (e) => { handleFiles(e.target.files); e.target.value = ''; });
 
         function handleFiles(files) {
             const newFiles = Array.from(files).filter(f =>
@@ -285,11 +310,7 @@
         }
 
         function renderFilesList() {
-            if (uploadedFiles.length === 0) {
-                filesList.classList.remove('active');
-                filesList.innerHTML = '';
-                return;
-            }
+            if (uploadedFiles.length === 0) { filesList.classList.remove('active'); filesList.innerHTML = ''; return; }
             filesList.classList.add('active');
             filesList.innerHTML = uploadedFiles.map((file, i) => `
                 <div class="file-item">
@@ -310,9 +331,7 @@
                             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                         </svg>
                     </button>
-                </div>
-            `).join('');
-
+                </div>`).join('');
             filesList.querySelectorAll('.file-remove').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
@@ -331,13 +350,10 @@
 
         // ---- NAVEGAÇÃO ----
         nextBtn.disabled = true;
-
         nextBtn.addEventListener('click', () => {
             if (uploadedFiles.length === 0) { alert('Selecione ao menos um arquivo XML ou ZIP'); return; }
-            currentStep = 2;
-            updateStep();
+            currentStep = 2; updateStep();
         });
-
         prevBtn.addEventListener('click', () => { currentStep = 1; updateStep(); });
 
         function updateStep() {
@@ -355,11 +371,9 @@
             let num = parseInt(digits, 10);
             let reais = Math.floor(num / 100);
             let cents = num % 100;
-            let reaisStr = reais.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-            e.target.value = reaisStr + ',' + String(cents).padStart(2, '0');
+            e.target.value = reais.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + String(cents).padStart(2, '0');
         });
 
-        // Mês e ano atual
         const now = new Date();
         document.getElementById('mes').value = String(now.getMonth() + 1).padStart(2, '0');
         document.getElementById('ano').value = now.getFullYear();
@@ -367,24 +381,16 @@
         // ---- SUBMIT ----
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-
-            // Converte "2.600.000,00" -> "2600000.00"
             const rbt12Raw = rbt12Input.value.replace(/\./g, '').replace(',', '.');
-            if (!rbt12Raw || parseFloat(rbt12Raw) <= 0) {
-                alert('Informe um RBT12 válido');
-                return;
-            }
-
+            if (!rbt12Raw || parseFloat(rbt12Raw) <= 0) { alert('Informe um RBT12 válido'); return; }
             const formData = new FormData();
             uploadedFiles.forEach(f => formData.append('xmls', f));
             formData.append('rbt12', rbt12Raw);
             formData.append('anexo', document.getElementById('anexo').value);
             formData.append('mes', document.getElementById('mes').value);
             formData.append('ano', document.getElementById('ano').value);
-
             form.style.display = 'none';
             loadingState.style.display = 'block';
-
             try {
                 const response = await fetch('/calcular', { method: 'POST', body: formData });
                 const result = await response.json();
@@ -403,34 +409,41 @@
 
         // ---- RESULTADOS ----
         function displayResults(data) {
+            // Contribuinte
+            const contribuinteCard = document.getElementById('contribuinteCard');
+            if (data.razao_social || data.cnpj_formatted) {
+                document.getElementById('razaoSocialDisplay').textContent = data.razao_social || '';
+                document.getElementById('cnpjDisplay').textContent = data.cnpj_formatted || '';
+                contribuinteCard.style.display = 'block';
+            } else {
+                contribuinteCard.style.display = 'none';
+            }
+
+            // Stats
             document.getElementById('statsGrid').innerHTML = `
                 <div class="stat-card"><div class="stat-label">Total de XMLs</div><div class="stat-value">${data.stats.total_arquivos}</div></div>
                 <div class="stat-card"><div class="stat-label">Notas Válidas</div><div class="stat-value">${data.stats.notas_validas}</div></div>
                 <div class="stat-card"><div class="stat-label">Canceladas</div><div class="stat-value">${data.stats.canceladas}</div></div>
-                <div class="stat-card"><div class="stat-label">Duplicadas</div><div class="stat-value">${data.stats.duplicadas}</div></div>
-            `;
+                <div class="stat-card"><div class="stat-label">Duplicadas</div><div class="stat-value">${data.stats.duplicadas}</div></div>`;
+
+            // DAS
             document.getElementById('dasValue').textContent = `R$ ${data.valor_das_formatted}`;
             document.getElementById('aliquotaValue').textContent = `${data.aliquota_efetiva.toFixed(4)}%`;
             document.getElementById('periodoValue').textContent = data.periodo;
+
+            // Detalhamento
             document.getElementById('faturamentoBruto').textContent = `R$ ${data.faturamento_bruto_formatted}`;
             document.getElementById('deducoesValue').textContent = `R$ ${data.deducoes_formatted}`;
             document.getElementById('receitaBruta').textContent = `R$ ${data.receita_bruta_formatted}`;
-            document.getElementById('cfopsTableBody').innerHTML = Object.entries(data.cfops).map(([cfop, d]) => `
-                <tr>
-                    <td><strong>${cfop}</strong></td>
-                    <td><span class="type-badge ${d.tipo.toLowerCase()}">${d.tipo}</span></td>
-                    <td>${d.quantidade}</td>
-                    <td><strong>R$ ${d.valor_formatted}</strong></td>
-                </tr>
-            `).join('');
 
-            // Series table
+            // Séries
+            const seriesSection = document.getElementById('seriesSection');
             const seriesBody = document.getElementById('seriesTableBody');
             const series = data.series || {};
             if (Object.keys(series).length > 0) {
-                document.getElementById('seriesSection').style.display = 'block';
+                seriesSection.style.display = 'block';
                 seriesBody.innerHTML = Object.entries(series)
-                    .sort(([a], [b]) => a.localeCompare(b))
+                    .sort(([a],[b]) => a.localeCompare(b))
                     .map(([serie, info]) => `
                         <tr>
                             <td><strong>${serie}</strong></td>
@@ -439,43 +452,45 @@
                             <td>${info.primeira_data}</td>
                             <td>${info.ultima_numero}</td>
                             <td>${info.ultima_data}</td>
-                        </tr>
-                    `).join('');
+                        </tr>`).join('');
             } else {
-                document.getElementById('seriesSection').style.display = 'none';
+                seriesSection.style.display = 'none';
             }
+
+            // CFOPs
+            document.getElementById('cfopsTableBody').innerHTML = Object.entries(data.cfops)
+                .map(([cfop, d]) => `
+                    <tr>
+                        <td><strong>${cfop}</strong></td>
+                        <td><span class="type-badge ${d.tipo.toLowerCase()}">${d.tipo}</span></td>
+                        <td>${d.quantidade}</td>
+                        <td><strong>R$ ${d.valor_formatted}</strong></td>
+                    </tr>`).join('');
         }
 
         // ---- DOWNLOAD PDF ----
-        let ultimoResultado = null;
-
         document.getElementById('downloadPdf').addEventListener('click', async () => {
             if (!ultimoResultado) return;
+            const btn = document.getElementById('downloadPdf');
             try {
-                const btn = document.getElementById('downloadPdf');
                 btn.textContent = 'Gerando...';
                 btn.disabled = true;
-
                 const response = await fetch('/gerar-pdf', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(ultimoResultado)
                 });
-
                 if (!response.ok) throw new Error('Erro ao gerar PDF');
-
                 const blob = await response.blob();
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                const periodo = ultimoResultado.periodo ? ultimoResultado.periodo.replace('/', '-') : 'resultado';
-                a.download = `DAS_${periodo}.pdf`;
+                a.download = 'DAS_' + (ultimoResultado.periodo || 'resultado').replace('/', '-') + '.pdf';
                 a.click();
                 URL.revokeObjectURL(url);
             } catch (err) {
                 alert('Erro ao gerar PDF: ' + err.message);
             } finally {
-                const btn = document.getElementById('downloadPdf');
                 btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Baixar PDF';
                 btn.disabled = false;
             }
@@ -485,11 +500,11 @@
         newCalculationBtn.addEventListener('click', () => {
             currentStep = 1;
             uploadedFiles = [];
+            ultimoResultado = null;
             form.reset();
             renderFilesList();
             updateStep();
             nextBtn.disabled = true;
-            ultimoResultado = null;
             resultsSection.style.display = 'none';
             form.style.display = 'block';
             window.scrollTo({ top: 0, behavior: 'smooth' });
