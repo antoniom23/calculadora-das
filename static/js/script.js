@@ -3,7 +3,6 @@
 // ============================================================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Elements
     const form = document.getElementById('calculatorForm');
     const uploadArea = document.getElementById('uploadArea');
     const fileInput = document.getElementById('xmlFiles');
@@ -15,7 +14,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const resultsSection = document.getElementById('resultsSection');
     const newCalculationBtn = document.getElementById('newCalculation');
     
-    // State
     let currentStep = 1;
     let uploadedFiles = [];
     
@@ -23,13 +21,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // FILE UPLOAD
     // ========================================================================
     
-    // Click to upload
     uploadArea.addEventListener('click', (e) => {
         if (e.target !== uploadArea && e.target.closest('.file-item')) return;
         fileInput.click();
     });
     
-    // Drag and drop
     uploadArea.addEventListener('dragover', (e) => {
         e.preventDefault();
         uploadArea.classList.add('dragover');
@@ -45,7 +41,6 @@ document.addEventListener('DOMContentLoaded', function() {
         handleFiles(e.dataTransfer.files);
     });
     
-    // File input change
     fileInput.addEventListener('change', (e) => {
         handleFiles(e.target.files);
     });
@@ -100,7 +95,6 @@ document.addEventListener('DOMContentLoaded', function() {
     window.removeFile = function(index) {
         uploadedFiles.splice(index, 1);
         renderFilesList();
-        
         if (uploadedFiles.length === 0) {
             nextBtn.disabled = true;
         }
@@ -121,7 +115,6 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('Por favor, selecione ao menos um arquivo XML');
             return;
         }
-        
         if (currentStep < 2) {
             currentStep++;
             updateStep();
@@ -136,31 +129,38 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     function updateStep() {
-        // Update form steps
         document.querySelectorAll('.form-step').forEach((step, index) => {
             step.classList.toggle('active', index + 1 === currentStep);
         });
-        
-        // Update buttons
         prevBtn.style.display = currentStep === 1 ? 'none' : 'inline-flex';
         nextBtn.style.display = currentStep === 2 ? 'none' : 'inline-flex';
         calculateBtn.style.display = currentStep === 2 ? 'inline-flex' : 'none';
     }
     
     // ========================================================================
-    // INPUT MASKS
+    // INPUT MASK RBT12 - CORRIGIDO
     // ========================================================================
     
     const rbt12Input = document.getElementById('rbt12');
     
     rbt12Input.addEventListener('input', (e) => {
-        let value = e.target.value.replace(/\D/g, '');
-        if (value) {
-            value = (parseInt(value) / 100).toFixed(2);
-            value = value.replace('.', ',');
-            value = value.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        // Remove tudo que não é dígito
+        let digits = e.target.value.replace(/\D/g, '');
+        
+        if (!digits) {
+            e.target.value = '';
+            return;
         }
-        e.target.value = value;
+        
+        // Trata como centavos: últimos 2 dígitos são centavos
+        let cents = parseInt(digits);
+        let reais = Math.floor(cents / 100);
+        let centavos = cents % 100;
+        
+        // Formata os reais com separador de milhar
+        let reaisStr = reais.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        
+        e.target.value = reaisStr + ',' + String(centavos).padStart(2, '0');
     });
     
     // Set current month and year
@@ -175,26 +175,22 @@ document.addEventListener('DOMContentLoaded', function() {
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        // Validate
-        const rbt12Value = rbt12Input.value.replace(/\./g, '').replace(',', '.');
-        if (!rbt12Value || parseFloat(rbt12Value) <= 0) {
+        // Converte "1.234.567,89" → "1234567.89"
+        const rbt12Raw = rbt12Input.value.replace(/\./g, '').replace(',', '.');
+        if (!rbt12Raw || parseFloat(rbt12Raw) <= 0) {
             alert('Por favor, informe um RBT12 válido');
             return;
         }
         
-        // Prepare FormData
         const formData = new FormData();
-        
         uploadedFiles.forEach(file => {
             formData.append('xmls', file);
         });
-        
-        formData.append('rbt12', rbt12Value);
+        formData.append('rbt12', rbt12Raw);
         formData.append('anexo', document.getElementById('anexo').value);
         formData.append('mes', document.getElementById('mes').value);
         formData.append('ano', document.getElementById('ano').value);
         
-        // Show loading
         form.style.display = 'none';
         loadingState.style.display = 'block';
         
@@ -210,13 +206,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error(result.error || 'Erro ao processar');
             }
             
-            // Display results
             displayResults(result);
-            
             loadingState.style.display = 'none';
             resultsSection.style.display = 'block';
-            
-            // Scroll to results
             resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
             
         } catch (error) {
@@ -231,7 +223,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // ========================================================================
     
     function displayResults(data) {
-        // Stats cards
         const statsGrid = document.getElementById('statsGrid');
         statsGrid.innerHTML = `
             <div class="stat-card">
@@ -252,17 +243,13 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         `;
         
-        // Main result
         document.getElementById('dasValue').textContent = `R$ ${data.valor_das_formatted}`;
         document.getElementById('aliquotaValue').textContent = `${data.aliquota_efetiva.toFixed(4)}%`;
         document.getElementById('periodoValue').textContent = data.periodo;
-        
-        // Breakdown
         document.getElementById('faturamentoBruto').textContent = `R$ ${data.faturamento_bruto_formatted}`;
         document.getElementById('deducoesValue').textContent = `R$ ${data.deducoes_formatted}`;
         document.getElementById('receitaBruta').textContent = `R$ ${data.receita_bruta_formatted}`;
         
-        // CFOPs table
         const cfopsTableBody = document.getElementById('cfopsTableBody');
         cfopsTableBody.innerHTML = Object.entries(data.cfops)
             .map(([cfop, dados]) => `
@@ -282,23 +269,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // ========================================================================
     
     newCalculationBtn.addEventListener('click', () => {
-        // Reset state
         currentStep = 1;
         uploadedFiles = [];
-        
-        // Reset form
         form.reset();
         renderFilesList();
         updateStep();
-        
-        // Hide results
         resultsSection.style.display = 'none';
         form.style.display = 'block';
-        
-        // Scroll to top
         window.scrollTo({ top: 0, behavior: 'smooth' });
-        
-        // Set current month/year again
         const currentDate = new Date();
         document.getElementById('mes').value = String(currentDate.getMonth() + 1).padStart(2, '0');
         document.getElementById('ano').value = currentDate.getFullYear();
