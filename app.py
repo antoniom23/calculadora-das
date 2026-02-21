@@ -6,7 +6,7 @@ Aplicação web para cálculo do DAS - Simples Nacional
 Pronta para deploy em VPS Hostinger
 """
 
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, make_response
 from werkzeug.utils import secure_filename
 import os
 import xml.etree.ElementTree as ET
@@ -222,8 +222,10 @@ def processar_xml(caminho: str) -> Optional[Dict]:
 
 @app.route('/')
 def index():
-    """Página principal"""
-    return render_template('index.html')
+    response = make_response(render_template('index.html'))
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    return response
 
 @app.route('/health')
 def health():
