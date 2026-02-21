@@ -237,7 +237,8 @@ def calcular():
         if 'xmls' not in request.files:
             return jsonify({'error': 'Nenhum arquivo enviado'}), 400
 
-        rbt12 = Decimal(request.form.get('rbt12', '0').replace('.', '').replace(',', '.'))
+        rbt12_str = request.form.get('rbt12', '0').strip().replace('.', '').replace(',', '.')
+        rbt12 = Decimal(rbt12_str) if rbt12_str else Decimal('0')
         anexo = request.form.get('anexo', 'ANEXO_I')
         mes_ref = request.form.get('mes', datetime.now().strftime('%m'))
         ano_ref = request.form.get('ano', datetime.now().strftime('%Y'))
@@ -306,13 +307,15 @@ def calcular():
 
         # Calcula totais
         faturamento_bruto = sum(
-            Decimal(str(item['valor'])) for nota in notas_validas
-            for item in nota['itens'] if item['tipo'] == 'V'
+            (Decimal(str(item['valor'])) for nota in notas_validas
+            for item in nota['itens'] if item['tipo'] == 'V'),
+            Decimal('0')
         )
 
         deducoes = sum(
-            Decimal(str(item['valor'])) for nota in notas_validas
-            for item in nota['itens'] if item['tipo'] == 'D'
+            (Decimal(str(item['valor'])) for nota in notas_validas
+            for item in nota['itens'] if item['tipo'] == 'D'),
+            Decimal('0')
         )
 
         receita_bruta = faturamento_bruto - deducoes
