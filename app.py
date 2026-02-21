@@ -239,7 +239,9 @@ def calcular():
         if 'xmls' not in request.files:
             return jsonify({'error': 'Nenhum arquivo enviado'}), 400
 
-        rbt12_str = request.form.get('rbt12', '0').strip().replace('.', '').replace(',', '.')
+        rbt12_str = request.form.get('rbt12', '0').strip()
+        # Remove apenas separadores de milhar (pontos antes de grupos de 3 dígitos), mantém ponto decimal
+        rbt12_str = re.sub(r'\.(?=\d{3})', '', rbt12_str).replace(',', '.')
         rbt12 = Decimal(rbt12_str) if rbt12_str else Decimal('0')
         anexo = request.form.get('anexo', 'ANEXO_I')
         mes_ref = request.form.get('mes', datetime.now().strftime('%m'))
