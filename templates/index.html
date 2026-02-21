@@ -74,6 +74,15 @@
                             </div>
                         </div>
                     </div>
+                
+                <div class="cfops-section" id="seriesSection" style="margin-top:24px;">
+                    <h3>Notas por Serie</h3>
+                    <div class="table-responsive">
+                        <table class="cfops-table">
+                            <thead><tr><th>Serie</th><th>Quantidade</th><th>Primeira NF</th><th>Data</th><th>Ultima NF</th><th>Data</th></tr></thead>
+                            <tbody id="seriesTableBody"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -414,6 +423,27 @@
                     <td><strong>R$ ${d.valor_formatted}</strong></td>
                 </tr>
             `).join('');
+
+            // Series table
+            const seriesBody = document.getElementById('seriesTableBody');
+            const series = data.series || {};
+            if (Object.keys(series).length > 0) {
+                document.getElementById('seriesSection').style.display = 'block';
+                seriesBody.innerHTML = Object.entries(series)
+                    .sort(([a], [b]) => a.localeCompare(b))
+                    .map(([serie, info]) => `
+                        <tr>
+                            <td><strong>${serie}</strong></td>
+                            <td>${info.quantidade}</td>
+                            <td>${info.primeira_numero}</td>
+                            <td>${info.primeira_data}</td>
+                            <td>${info.ultima_numero}</td>
+                            <td>${info.ultima_data}</td>
+                        </tr>
+                    `).join('');
+            } else {
+                document.getElementById('seriesSection').style.display = 'none';
+            }
         }
 
         // ---- DOWNLOAD PDF ----
